@@ -1,4 +1,4 @@
-net: "models/bvlc_alexnet_ddfd/train_val.prototxt"
+net: "models/bvlc_alexnet_ddfd/conv_train_val.prototxt"
 test_iter: 1000
 test_interval: 1000
 base_lr: 0.01
@@ -10,5 +10,5 @@ max_iter: 50000
 momentum: 0.9
 weight_decay: 0.0005
 snapshot: 10000
-snapshot_prefix: "models/bvlc_alexnet_ddfd/caffe_alexnet_ddfd_train"
+snapshot_prefix: "models/bvlc_alexnet_ddfd/caffe_conv_alexnet_ddfd_train"
 solver_mode: GPU

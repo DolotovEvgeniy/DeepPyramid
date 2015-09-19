@@ -9,14 +9,15 @@ layer {
   }
   transform_param {
     mirror: true
-    crop_size: 227
     mean_file: "data/ilsvrc12/imagenet_mean.binaryproto"
+    crop_size: 227
+    
   }
   image_data_param {
-    source: "train.txt"
+    source: "examples/ddfd_alexnet/train.txt"
     batch_size: 128
-    new_height: 227
-    new_width: 227
+    new_height: 256
+    new_width: 256
   }
 }
 layer {
@@ -33,8 +34,10 @@ layer {
     mean_file: "data/ilsvrc12/imagenet_mean.binaryproto"
   }
   image_data_param {
-    source: "test.txt"
+    source: "examples/ddfd_alexnet/test.txt"
     batch_size: 20
+    new_height: 256
+    new_width: 256
   }
 }
 layer {

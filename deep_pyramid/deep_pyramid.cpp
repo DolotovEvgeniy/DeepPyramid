@@ -322,7 +322,7 @@ cv::Mat DeepPyramid::getFeatureVector(int levelIndx, Point position, Size size)
 void DeepPyramid::rootFilterAtLevel(int rootFilterIndx, int levelIndx, int stride)
 {
     Size filterSize=rootFilterSize[rootFilterIndx];
-    CvSVM& filterSVM=rootFilterSVM[rootFilterIndx];
+    CvSVM* filterSVM=rootFilterSVM[rootFilterIndx];
     int stepWidth, stepHeight;
     stepWidth=((norm5[levelIndx][0].cols-filterSize.width)/stride)+1;
     stepHeight=((norm5[levelIndx][0].rows-filterSize.height)/stride)+1;
@@ -334,8 +334,8 @@ void DeepPyramid::rootFilterAtLevel(int rootFilterIndx, int levelIndx, int strid
             cv::Mat feature=getFeatureVector(levelIndx,p,filterSize);
             int predict;
             double confidence;
-            predict=filterSVM.predict(feature);
-            confidence=filterSVM.predict(feature,true);
+            predict=filterSVM->predict(feature);
+            confidence=filterSVM->predict(feature,true);
             FaceBox face;
             face.confidence=confidence;
             face.level=levelIndx;
@@ -424,4 +424,10 @@ void DeepPyramid::detect(Mat img)
     groupOriginalRectangle();
     drawFace();
     imshow("RESULT", originalImgWithFace);
+}
+
+void DeepPyramid::addRootFilter(Size filterSize, CvSVM* classifier)
+{
+    rootFilterSize.push_back(filterSize);
+    rootFilterSVM.push_back(classifier);
 }

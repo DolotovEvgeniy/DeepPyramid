@@ -42,7 +42,7 @@ public:
     std::vector<float> meanValue;
     std::vector<float> deviationValue;
     std::vector<cv::Size> rootFilterSize;
-    std::vector<CvSVM> rootFilterSVM;
+    std::vector<CvSVM*> rootFilterSVM;
     std::vector<FaceBox> allFaces;
     std::vector<cv::Rect> detectedFaces;
     void drawFace();
@@ -57,7 +57,7 @@ public:
     void setImg(cv::Mat img);
     void createMax5PyramidTest();
     void showNorm5Pyramid();
-    void addRootFilter(cv::Size filterSize, CvSVM& classifier);
+    void addRootFilter(cv::Size filterSize, CvSVM* classifier);
 public:
     //Image Pyramid
     cv::Size calculateLevelPyramidImageSize(int i);

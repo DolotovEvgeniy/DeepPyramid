@@ -304,14 +304,14 @@ void DeepPyramid::createNorm5Pyramid()
 //
 cv::Mat DeepPyramid::getFeatureVector(int levelIndx, Point position, Size size)
 {
-    cv::Mat feature(size.height*size.width*norm5[levelIndx].size(),1,CV_32FC1);
+    cv::Mat feature(1,size.height*size.width*norm5[levelIndx].size(),CV_32FC1);
     for(int w=0;w<size.width;w++)
     {
         for(int h=0;h<size.height;h++)
         {
             for(unsigned int k=0;k<norm5[levelIndx].size();k++)
             {
-                feature.at<float>(w+h*size.width+k*size.height*size.width,0)=norm5[levelIndx][k].at<float>(position.x+w,position.y+h);
+                feature.at<float>(0,w+h*size.width+k*size.height*size.width)=norm5[levelIndx][k].at<float>(position.y+h,position.x+w);
             }
         }
     }
@@ -344,6 +344,7 @@ void DeepPyramid::rootFilterAtLevel(int rootFilterIndx, int levelIndx, int strid
             {
                 face.type=FACE;
                 allFaces.push_back(face);
+                cout<<"lol"<<endl;
             }
             else
             {
@@ -351,6 +352,7 @@ void DeepPyramid::rootFilterAtLevel(int rootFilterIndx, int levelIndx, int strid
                 {
                     face.type=NOT_FACE;
                 }
+                //cout<<"here!"<<endl;
             }
         }
 }
@@ -407,6 +409,7 @@ void DeepPyramid::groupOriginalRectangle()
 
 void DeepPyramid::drawFace()
 {
+    originalImg.copyTo(originalImgWithFace);
     for(unsigned int i=0;i<detectedFaces.size();i++)
     {
         rectangle(originalImgWithFace,detectedFaces[i],Scalar(0,0,255));
@@ -419,11 +422,17 @@ void DeepPyramid::detect(Mat img)
     createImagePyramid();
     createMax5Pyramid();
     createNorm5Pyramid();
+    cout<<"filter"<<endl;
     rootFilterConvolution();
+    cout<<"rectangle"<<endl;
     calculateOriginalRectangle();
+    cout<<allFaces.size()<<endl;
+    cout<<"group"<<endl;
     groupOriginalRectangle();
+    cout<<"draw"<<endl;
     drawFace();
     imshow("RESULT", originalImgWithFace);
+    waitKey(0);
 }
 
 void DeepPyramid::addRootFilter(Size filterSize, CvSVM* classifier)

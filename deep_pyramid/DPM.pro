@@ -15,7 +15,8 @@ CONFIG   -= app_bundle
 TEMPLATE = app
 
 
-SOURCES += main.cpp
+SOURCES += main.cpp \
+    deep_pyramid.cpp
 
 LIBS += -L/usr/local/lib \
 -lopencv_core \
@@ -41,3 +42,6 @@ INCLUDEPATH += /home/evgeniy/caffe/build/include
 
 LIBS += -L/usr/local/lib \
 -lglog \
+
+HEADERS += \
+    deep_pyramid.h

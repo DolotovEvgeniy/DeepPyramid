@@ -1,5 +1,5 @@
 #include <deep_pyramid.h>
-
+#include <nms.h>
 using namespace cv;
 using namespace std;
 using namespace caffe;
@@ -16,12 +16,17 @@ cv::Rect getRectByNorm5Rect(cv::Rect r)
 {
     Point hl=Point(r.x,r.y);
     Point dr=Point(r.x+r.width,r.y+r.height);
-    Rect r1=getRectByNorm5Pixel(hl);
-    Rect r2=getRectByNorm5Pixel(dr);
-    Point RectHL=Point(r1.x,r1.y);
-    Point RectDR=Point(r2.x+r2.width, r2.y+r2.height);
-
-    return Rect(RectHL, RectDR);
+//    Rect r1=getRectByNorm5Pixel(hl);
+//    Rect r2=getRectByNorm5Pixel(dr);
+//    Point RectHL=Point(r1.x,r1.y);
+//    Point RectDR=Point(r2.x+r2.width, r2.y+r2.height);
+    Rect myRect;
+    myRect.x=hl.x*16;
+    myRect.y=hl.y*16;
+    myRect.width=(dr.x-hl.x)*16;
+    myRect.height=(dr.y-hl.y)*16;
+    return myRect;
+    //return Rect(RectHL, RectDR);
 }
 cv::Rect getNorm5RectByOriginal(cv::Rect originalRect)
 {
@@ -324,35 +329,35 @@ void DeepPyramid::rootFilterAtLevel(int rootFilterIndx, int levelIndx, int strid
     Size filterSize=rootFilterSize[rootFilterIndx];
     CvSVM* filterSVM=rootFilterSVM[rootFilterIndx];
     int stepWidth, stepHeight;
-    stepWidth=((norm5[levelIndx][0].cols-filterSize.width)/stride)+1;
-    stepHeight=((norm5[levelIndx][0].rows-filterSize.height)/stride)+1;
 
-    for(int w=0;w<stepWidth;w++)
-        for(int h=0;h<stepHeight;h++)
+    stepWidth=((norm5[levelIndx][0].cols/pow(2,(num_levels-1-levelIndx)/2.0)-filterSize.width)/stride)+1;
+    stepHeight=((norm5[levelIndx][0].rows/pow(2,(num_levels-1-levelIndx)/2.0)-filterSize.height)/stride)+1;
+
+    for(int w=0;w<stepWidth;w+=stride)
+        for(int h=0;h<stepHeight;h+=stride)
         {
-            Point p(stride*stepWidth,stride*stepHeight);
+
+            Point p(stride*w,stride*h);
+            //rectangle(norm5[levelIndx][3],Rect(p,Size(7,11)),Scalar::all(255));
+            //imshow("nnnn",norm5[levelIndx][3]);
+            //waitKey(5);
             cv::Mat feature=getFeatureVector(levelIndx,p,filterSize);
             int predict;
-            double confidence;
+
             predict=filterSVM->predict(feature);
-            confidence=filterSVM->predict(feature,true);
-            FaceBox face;
-            face.confidence=confidence;
-            face.level=levelIndx;
-            face.norm5Box=Rect(p,filterSize);
+
             if(predict==1)
             {
+                FaceBox face;
                 face.type=FACE;
+                cout<<"looooooooool"<<endl;
+                face.confidence=std::fabs(filterSVM->predict(feature,true));
+                face.level=levelIndx;
+                face.norm5Box=Rect(p,filterSize);
                 allFaces.push_back(face);
-                cout<<"lol"<<endl;
-            }
-            else
-            {
-                if(predict==-1)
-                {
-                    face.type=NOT_FACE;
-                }
-                //cout<<"here!"<<endl;
+//               rectangle(norm5[levelIndx][3],Rect(p,Size(7,11)),Scalar::all(255));
+//                imshow("nnnn",norm5[levelIndx][3]);
+//                waitKey(10);
             }
         }
 }
@@ -361,7 +366,11 @@ void DeepPyramid::rootFilterConvolution()
 {
     for(unsigned int i=0;i<rootFilterSize.size();i++)
         for(unsigned int j=0;j<norm5.size();j++)
+        {
+            cout<<"Convolution with SVM level "+to_string(j+1)+"..."<<endl;
             rootFilterAtLevel(i,j,1);
+            cout<<"Status: Success!"<<endl;
+        }
 }
 //
 ////
@@ -397,14 +406,16 @@ void DeepPyramid::calculateOriginalRectangle()
         allFaces[i].originalImageBox=original;
     }
 }
+double IOU(Rect r1,Rect r2)
+{
+    Rect runion= r1 & r2;
+
+    return (double)runion.area()/(r1.area()+r2.area()-runion.area());
+}
 
 void DeepPyramid::groupOriginalRectangle()
 {
-    for(unsigned int i=0;i<allFaces.size();i++)
-    {
-        detectedFaces.push_back(allFaces[i].originalImageBox);
-    }
-    cv::groupRectangles(detectedFaces,1,0.2);
+    detectedFaces=nms_avg(allFaces,0.2,0.7);
 }
 
 void DeepPyramid::drawFace()
@@ -412,7 +423,7 @@ void DeepPyramid::drawFace()
     originalImg.copyTo(originalImgWithFace);
     for(unsigned int i=0;i<detectedFaces.size();i++)
     {
-        rectangle(originalImgWithFace,detectedFaces[i],Scalar(0,0,255));
+        rectangle(originalImgWithFace,detectedFaces[i],Scalar(0,255,0));
     }
 }
 
@@ -424,14 +435,14 @@ void DeepPyramid::detect(Mat img)
     createNorm5Pyramid();
     cout<<"filter"<<endl;
     rootFilterConvolution();
-    cout<<"rectangle"<<endl;
+    cout<<"group rectangle"<<endl;
     calculateOriginalRectangle();
-    cout<<allFaces.size()<<endl;
-    cout<<"group"<<endl;
     groupOriginalRectangle();
+    cout<<"Face count:"<<detectedFaces.size()<<endl;
     cout<<"draw"<<endl;
     drawFace();
     imshow("RESULT", originalImgWithFace);
+    imwrite("RESULT.jpg", originalImgWithFace);
     waitKey(0);
 }
 

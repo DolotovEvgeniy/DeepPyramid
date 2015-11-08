@@ -45,6 +45,25 @@ public:
     std::vector<CvSVM*> rootFilterSVM;
     std::vector<FaceBox> allFaces;
     std::vector<cv::Rect> detectedFaces;
+    cv::PCA pca;
+    void save(const std::string &file_name)
+    {
+        cv::FileStorage fs(file_name,cv::FileStorage::WRITE);
+        fs << "mean" << pca.mean;
+        fs << "e_vectors" << pca.eigenvectors;
+        fs << "e_values" << pca.eigenvalues;
+        fs.release();
+    }
+
+    int load(const std::string &file_name)
+    {
+        cv::FileStorage fs(file_name,cv::FileStorage::READ);
+        fs["mean"] >> pca.mean ;
+        fs["e_vectors"] >> pca.eigenvectors ;
+        fs["e_values"] >> pca.eigenvalues ;
+        fs.release();
+return 0;
+    }
     void drawFace();
     caffe::shared_ptr<caffe::Net<float> > net_;
     cv::Size input_geometry_;
@@ -91,4 +110,6 @@ public:
 
 };
 
+
+double IOU(cv::Rect r1,cv::Rect r2);
 #endif // DEEP_PYRAMID_H

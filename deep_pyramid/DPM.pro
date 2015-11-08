@@ -16,7 +16,8 @@ TEMPLATE = app
 
 
 SOURCES += main.cpp \
-    deep_pyramid.cpp
+    deep_pyramid.cpp \
+    nms.cpp
 
 LIBS += -L/usr/local/lib \
 -lopencv_core \
@@ -44,4 +45,5 @@ LIBS += -L/usr/local/lib \
 -lglog \
 
 HEADERS += \
-    deep_pyramid.h
+    deep_pyramid.h \
+    nms.h

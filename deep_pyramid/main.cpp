@@ -19,6 +19,7 @@ int main(int argc, char *argv[])
     string alexnet_trained_file=argv[2];
     string svm_trained_file=argv[3];
     DeepPyramid pyramid(7,alexnet_model_file, alexnet_trained_file);
+    pyramid.load("pca.xml");
     string image_file=argv[4];
 
     CvSVM classifier;

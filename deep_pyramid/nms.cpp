@@ -1,41 +1,35 @@
 #include <nms.h>
-
+#include <opencv2/objdetect/objdetect.hpp>
 using namespace std;
 using namespace cv;
 
 
-
-bool SimilarFaceBox::operator() (FaceBox b1, FaceBox b2)
+vector<ObjectBox> nms_max(vector<ObjectBox> objects, double threshold)
 {
-    return IOU(b1.originalImageBox,b2.originalImageBox)>eps;
-}
-
-vector<Rect> nms_max(vector<FaceBox> faces, double threshold)
-{
-    vector<Rect> detectedFace;
-    while(!faces.empty())
+    vector<ObjectBox> detectedObjects;
+    while(!objects.empty())
     {
         int max=0;
-        for(unsigned int i=0;i<faces.size();i++)
+        for(unsigned int i=0;i<objects.size();i++)
         {
-            if(faces[i].confidence>faces[max].confidence)
+            if(objects[i].confidence>objects[max].confidence)
             {
                 max=i;
             }
         }
-        detectedFace.push_back(faces[max].originalImageBox);
-        vector<FaceBox> newFaces;
-        for(unsigned int i=0;i<faces.size();i++)
+        detectedObjects.push_back(objects[max]);
+        vector<ObjectBox> newObjects;
+        for(unsigned int i=0;i<objects.size();i++)
         {
-            if(IOU(faces[max].originalImageBox,faces[i].originalImageBox)<=threshold)
+            if(IOU(objects[max].originalImageBox,objects[i].originalImageBox)<=threshold)
             {
-                newFaces.push_back(faces[i]);
+                newObjects.push_back(objects[i]);
             }
 
         }
-        faces=newFaces;
+        objects=newObjects;
     }
-    return detectedFace;
+    return detectedObjects;
 }
 Rect avg_rect(vector<Rect> rectangles)
 {
@@ -57,30 +51,42 @@ Rect avg_rect(vector<Rect> rectangles)
     return resultRect;
 }
 
-vector<Rect> nms_avg(vector<FaceBox> faces, double box_threshold, double confidence_threshold)
+vector<ObjectBox> nms_avg(vector<ObjectBox> objects, double box_threshold, double confidence_threshold)
 {
-    vector<Rect> detectedFace;
-
-    vector<int> labels;
-    partition(faces,labels,SimilarFaceBox(box_threshold));
-    int maxClusterNum=1;
-    for(unsigned int i=0;i<labels.size();i++)
+    vector<ObjectBox> detectedObjects;
+    vector< vector<ObjectBox> > clusters;
+    while(!objects.empty())
     {
-        if(labels[i]+1>maxClusterNum)
+        int max=0;
+        for(unsigned int i=0;i<objects.size();i++)
         {
-            maxClusterNum=labels[i]+1;
-        }
-    }
-    for(int i=0;i<maxClusterNum;i++)
-    {
-        vector<FaceBox> boxInCluster;
-        for(unsigned int j=0;j<labels.size();j++)
-        {
-            if(labels[j]==i)
+            if(objects[i].confidence>objects[max].confidence)
             {
-                boxInCluster.push_back(faces[j]);
+                max=i;
             }
         }
+        vector<ObjectBox> cluster;
+        cluster.push_back(objects[max]);
+        vector<ObjectBox> newObjects;
+        for(unsigned int i=0;i<objects.size();i++)
+        {
+            if(IOU(objects[max].originalImageBox,objects[i].originalImageBox)<=box_threshold)
+            {
+                newObjects.push_back(objects[i]);
+            }
+            else
+            {
+                cluster.push_back(objects[i]);
+            }
+
+        }
+        clusters.push_back(cluster);
+        objects=newObjects;
+    }
+    for(unsigned int i=0;i<clusters.size();i++)
+    {
+        vector<ObjectBox> boxInCluster;
+        boxInCluster=clusters[i];
         cout<<"Box in cluster:"<<boxInCluster.size()<<endl;
         int max=0;
         for(unsigned int i=0;i<boxInCluster.size();i++)
@@ -100,8 +106,11 @@ vector<Rect> nms_avg(vector<FaceBox> faces, double box_threshold, double confide
             }
         }
         cout<<"box with max conf:"<<rectWithMaxConfidence.size()<<endl;
-        detectedFace.push_back(avg_rect(rectWithMaxConfidence));
+        ObjectBox resultObject;
+        resultObject.originalImageBox=avg_rect(rectWithMaxConfidence);
+        resultObject.confidence=maxConfidence;
+        detectedObjects.push_back(resultObject);
     }
 
-    return detectedFace;
+    return detectedObjects;
 }

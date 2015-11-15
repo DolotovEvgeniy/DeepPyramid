@@ -1,39 +1,74 @@
 #include <deep_pyramid.h>
 #include <nms.h>
+#include <sstream>
+#include <math.h>
+#include <assert.h>
+#include <time.h>
 using namespace cv;
 using namespace std;
 using namespace caffe;
 
-cv::Rect getRectByNorm5Pixel(cv::Point p)
+string DeepPyramid::to_string(int i)
 {
-    Point center=p*16;
-    Point hl=Point((center.x-81)>0 ? center.x-81 : 0, (center.y-81)>0 ? center.y-81 : 0);
-    Point dr=Point((center.x+81)<1713 ? center.x+81 : 1712, (center.y+81)<1713 ? center.y+81 : 1712);
+    ostringstream stm ;
+    stm << i ;
+    return stm.str() ;
+}
+
+Rect DeepPyramid::getRectByNorm5Pixel_ARTICLE(Point p)
+{
+    Point center=p*centerConformity;
+    //high-left
+    Point hl;
+    int x,y;
+    x=center.x-boxSideConformity;
+    y=center.y-boxSideConformity;
+    hl.x=x>0 ? x : 0;
+    hl.y=y>0 ? y : 0;
+
+    //down-right
+    Point dr;
+    x=center.x+boxSideConformity;
+    y=center.y+boxSideConformity;
+    dr.x=x<sideNetInputSquare ? x : sideNetInputSquare-1;
+    dr.y=y<sideNetInputSquare ? y : sideNetInputSquare-1;
 
     return Rect(hl,dr);
 }
-cv::Rect getRectByNorm5Rect(cv::Rect r)
+
+Rect DeepPyramid::getRectByNorm5Rect_ARTICLE(Rect r)
 {
     Point hl=Point(r.x,r.y);
     Point dr=Point(r.x+r.width,r.y+r.height);
-//    Rect r1=getRectByNorm5Pixel(hl);
-//    Rect r2=getRectByNorm5Pixel(dr);
-//    Point RectHL=Point(r1.x,r1.y);
-//    Point RectDR=Point(r2.x+r2.width, r2.y+r2.height);
-    Rect myRect;
-    myRect.x=hl.x*16;
-    myRect.y=hl.y*16;
-    myRect.width=(dr.x-hl.x)*16;
-    myRect.height=(dr.y-hl.y)*16;
-    return myRect;
-    //return Rect(RectHL, RectDR);
+    Rect r1=getRectByNorm5Pixel_ARTICLE(hl);
+    Rect r2=getRectByNorm5Pixel_ARTICLE(dr);
+    Point RectHL=Point(r1.x,r1.y);
+    Point RectDR=Point(r2.x+r2.width, r2.y+r2.height);
+
+    return Rect(RectHL, RectDR);
 }
-cv::Rect getNorm5RectByOriginal(cv::Rect originalRect)
+
+Rect DeepPyramid::getRectByNorm5Rect(Rect r)
+{
+    Blob<float>* input_layer = net_->input_blobs()[0];
+    Blob<float>* output_layer = net_->output_blobs()[0];
+    double scale=input_layer->width()/(double)output_layer->width();
+
+    Rect rect;
+    rect.x=r.x*scale;
+    rect.y=r.y*scale;
+    rect.width=r.width*scale;
+    rect.height=r.height*scale;
+
+    return rect;
+}
+
+Rect DeepPyramid::getNorm5RectByOriginal_ARTICLE(Rect originalRect)
 {
     Point hl=Point(originalRect.x,originalRect.y);
     Point dr=Point(originalRect.x+originalRect.width,originalRect.y+originalRect.height);
-    Point norm5HL=(hl+Point(81,81))*(1/16.0);
-    Point norm5DR=(dr-Point(81,81))*(1/16.0);
+    Point norm5HL=(hl+Point(boxSideConformity,boxSideConformity))*(1/(double)centerConformity);
+    Point norm5DR=(dr-Point(boxSideConformity,boxSideConformity))*(1/(double)centerConformity);
     Rect r;
     if(norm5HL.x<norm5DR.x)
     {
@@ -57,10 +92,34 @@ cv::Rect getNorm5RectByOriginal(cv::Rect originalRect)
     }
     return r;
 }
-cv::Rect boundingBoxAtLevel(int i, cv::Rect originalRect,cv::Size originalMatSize)
+
+Rect DeepPyramid::getNorm5RectByOriginal(Rect originalRect)
 {
-    double longSide=(originalMatSize.width>originalMatSize.height) ? originalMatSize.width : originalMatSize.height;
-    double scale = (1713.0/pow(2, (6-i)/2.0))/longSide;
+    Blob<float>* input_layer = net_->input_blobs()[0];
+    Blob<float>* output_layer = net_->output_blobs()[0];
+    double scale=input_layer->width()/(double)output_layer->width();
+
+    Rect r;
+    r.x=originalRect.x/scale;
+    r.y=originalRect.y/scale;
+    r.width=originalRect.width/scale;
+    r.height=originalRect.height/scale;
+
+    return r;
+}
+
+Rect DeepPyramid::boundingBoxAtLevel(int i, Rect originalRect)
+{
+    double longSide;
+    if(originalImg.cols>originalImg.rows)
+    {
+        longSide=originalImg.cols;
+    }
+    else
+    {
+        longSide=originalImg.rows;
+    }
+    double scale = (sideNetInputSquare/pow(2, (num_levels-1-i)/2.0))/longSide;
     originalRect.x*=scale;
     originalRect.y*=scale;
     originalRect.height*=scale;
@@ -68,25 +127,18 @@ cv::Rect boundingBoxAtLevel(int i, cv::Rect originalRect,cv::Size originalMatSiz
     return originalRect;
 }
 
-
-
-std::string to_string(int i)
-{
-    std::ostringstream stm ;
-    stm << i ;
-    return stm.str() ;
-}
-
-
-
 DeepPyramid:: DeepPyramid(int num_levels, const string& model_file,
                           const string& trained_file) {
     this->num_levels=num_levels;
     net_.reset(new Net<float>(model_file, TEST));
     net_->CopyTrainedLayersFrom(trained_file);
     Blob<float>* input_layer = net_->input_blobs()[0];
-    num_channels_ = input_layer->channels();
-    input_geometry_ = cv::Size(input_layer->width(), input_layer->height());
+    num_channels = input_layer->channels();
+    assert(input_layer->width()==input_layer->height());
+    sideNetInputSquare=input_layer->width();
+    detectedObjectColor=Scalar(0,255,0);
+    centerConformity=16;
+    boxSideConformity=81;
 }
 
 void DeepPyramid::createMax5PyramidTest()
@@ -126,12 +178,12 @@ Size DeepPyramid::calculateLevelPyramidImageSize(int i)
     Size levelPyramidImageSize;
     if(originalImg.rows<=originalImg.cols)
     {
-        levelPyramidImageSize.width=1713.0/pow(2,(num_levels-1-i)/2.0);
+        levelPyramidImageSize.width=sideNetInputSquare/pow(2,(num_levels-1-i)/2.0);
         levelPyramidImageSize.height=levelPyramidImageSize.width*(originalImg.rows/((double)originalImg.cols));
     }
     else
     {
-        levelPyramidImageSize.height=1713.0/pow(2,(num_levels-1-i)/2.0);
+        levelPyramidImageSize.height=sideNetInputSquare/pow(2,(num_levels-1-i)/2.0);
         levelPyramidImageSize.width=levelPyramidImageSize.height*(originalImg.cols/((double)originalImg.rows));
     }
 
@@ -140,7 +192,7 @@ Size DeepPyramid::calculateLevelPyramidImageSize(int i)
 
 Mat DeepPyramid::createLevelPyramidImage(int i)
 {
-    Mat levelImg(1713,1713,CV_8UC3,Scalar(0,0,0));
+    Mat levelImg(sideNetInputSquare,sideNetInputSquare,CV_8UC3,Scalar(0,0,0));
     Size pictureSize=calculateLevelPyramidImageSize(i);
     Mat resizedImg;
     resize(originalImg, resizedImg, pictureSize);
@@ -169,9 +221,9 @@ void DeepPyramid::calculateNet()
     net_->ForwardPrefilled();
 }
 
-cv::Mat DeepPyramid::convertToFloat(Mat img)
+Mat DeepPyramid::convertToFloat(Mat img)
 {
-    cv::Mat img_float;
+    Mat img_float;
     if (img.channels() == 3)
     {
         img.convertTo(img_float, CV_32FC3);
@@ -191,22 +243,22 @@ void DeepPyramid::fillNeuralNetInput(int i)
 {
     Mat img=imagePyramid[i];
     Blob<float>* input_layer = net_->input_blobs()[0];
-    input_layer->Reshape(1, num_channels_,
-                         input_geometry_.height, input_geometry_.width);
+    input_layer->Reshape(1, num_channels,
+                         sideNetInputSquare, sideNetInputSquare);
     net_->Reshape();
 
-    std::vector<cv::Mat> input_channels;
+    std::vector<Mat> input_channels;
     int width = input_layer->width();
     int height = input_layer->height();
     float* input_data = input_layer->mutable_cpu_data();
     for (int i = 0; i < input_layer->channels(); ++i) {
-        cv::Mat channel(height, width, CV_32FC1, input_data);
+        Mat channel(height, width, CV_32FC1, input_data);
         input_channels.push_back(channel);
         input_data += width * height;
     }
 
-    cv::Mat img_float=convertToFloat(img);
-    cv::split(img_float, input_channels);
+    Mat img_float=convertToFloat(img);
+    split(img_float, input_channels);
 }
 
 void DeepPyramid::calculateNetAtLevel(int i)
@@ -226,7 +278,7 @@ std::vector<Mat> DeepPyramid::wrapNetOutputLayer()
     const float* begin = output_layer->cpu_data();
     float* data=new float[output_layer->height()*output_layer->width()];
 
-    std::vector<cv::Mat> max5Level;
+    std::vector<Mat> max5Level;
 
     for(int k=0;k<output_layer->channels();k++)
     {
@@ -307,9 +359,9 @@ void DeepPyramid::createNorm5Pyramid()
 
 //Root-Filter sliding window
 //
-cv::Mat DeepPyramid::getFeatureVector(int levelIndx, Point position, Size size)
+Mat DeepPyramid::getFeatureVector(int levelIndx, Point position, Size size)
 {
-    cv::Mat feature(1,size.height*size.width*norm5[levelIndx].size(),CV_32FC1);
+    Mat feature(1,size.height*size.width*norm5[levelIndx].size(),CV_32FC1);
     for(int w=0;w<size.width;w++)
     {
         for(int h=0;h<size.height;h++)
@@ -332,15 +384,12 @@ void DeepPyramid::rootFilterAtLevel(int rootFilterIndx, int levelIndx, int strid
 
     stepWidth=((norm5[levelIndx][0].cols/pow(2,(num_levels-1-levelIndx)/2.0)-filterSize.width)/stride)+1;
     stepHeight=((norm5[levelIndx][0].rows/pow(2,(num_levels-1-levelIndx)/2.0)-filterSize.height)/stride)+1;
-
+    int detectedObjectCount=0;
     for(int w=0;w<stepWidth;w+=stride)
         for(int h=0;h<stepHeight;h+=stride)
         {
 
             Point p(stride*w,stride*h);
-            //rectangle(norm5[levelIndx][3],Rect(p,Size(7,11)),Scalar::all(255));
-            //imshow("nnnn",norm5[levelIndx][3]);
-            //waitKey(5);
             cv::Mat feature=getFeatureVector(levelIndx,p,filterSize);
             int predict;
 
@@ -348,18 +397,16 @@ void DeepPyramid::rootFilterAtLevel(int rootFilterIndx, int levelIndx, int strid
 
             if(predict==1)
             {
-                FaceBox face;
-                face.type=FACE;
-                cout<<"looooooooool"<<endl;
-                face.confidence=std::fabs(filterSVM->predict(feature,true));
-                face.level=levelIndx;
-                face.norm5Box=Rect(p,filterSize);
-                allFaces.push_back(face);
-//               rectangle(norm5[levelIndx][3],Rect(p,Size(7,11)),Scalar::all(255));
-//                imshow("nnnn",norm5[levelIndx][3]);
-//                waitKey(10);
+                ObjectBox object;
+                object.type=OBJECT;
+                object.confidence=std::fabs(filterSVM->predict(feature,true));
+                object.level=levelIndx;
+                object.norm5Box=Rect(p,filterSize);
+                allObjects.push_back(object);
+                detectedObjectCount++;
             }
         }
+    cout<<"Count of detected objects: "<<detectedObjectCount<<endl;
 }
 
 void DeepPyramid::rootFilterConvolution()
@@ -379,9 +426,9 @@ void DeepPyramid::rootFilterConvolution()
 //
 void DeepPyramid::calculateImagePyramidRectangle()
 {
-    for(unsigned int i=0;i<allFaces.size();i++)
+    for(unsigned int i=0;i<allObjects.size();i++)
     {
-        allFaces[i].pyramidImageBox=getRectByNorm5Rect(allFaces[i].norm5Box);
+        allObjects[i].pyramidImageBox=getRectByNorm5Rect(allObjects[i].norm5Box);
     }
 }
 
@@ -392,18 +439,18 @@ void DeepPyramid::calculateOriginalRectangle()
     double longSide=(originalImg.cols>originalImg.rows) ? originalImg.cols : originalImg.rows;
     for(int i=0;i<num_levels;i++)
     {
-        scales[i]=longSide/(1713/pow(2, (6-i)/2.0));
+        scales[i]=longSide/(sideNetInputSquare/pow(2, (num_levels-1-i)/2.0));
     }
-    for(unsigned int i=0;i<allFaces.size();i++)
+    for(unsigned int i=0;i<allObjects.size();i++)
     {
         Rect original;
-        Rect pyramid=allFaces[i].pyramidImageBox;
-        int level=allFaces[i].level;
+        Rect pyramid=allObjects[i].pyramidImageBox;
+        int level=allObjects[i].level;
         original.x=pyramid.x*scales[level];
         original.y=pyramid.y*scales[level];
         original.width=pyramid.width*scales[level];
         original.height=pyramid.height*scales[level];
-        allFaces[i].originalImageBox=original;
+        allObjects[i].originalImageBox=original;
     }
 }
 double IOU(Rect r1,Rect r2)
@@ -415,20 +462,21 @@ double IOU(Rect r1,Rect r2)
 
 void DeepPyramid::groupOriginalRectangle()
 {
-    detectedFaces=nms_avg(allFaces,0.2,0.7);
+    detectedObjects=nms_avg(allObjects,0.2,0.7);
 }
 
-void DeepPyramid::drawFace()
+void DeepPyramid::drawObjects()
 {
-    originalImg.copyTo(originalImgWithFace);
-    for(unsigned int i=0;i<detectedFaces.size();i++)
+    originalImg.copyTo(originalImgWithObjects);
+    for(unsigned int i=0;i<detectedObjects.size();i++)
     {
-        rectangle(originalImgWithFace,detectedFaces[i],Scalar(0,255,0));
+        rectangle(originalImgWithObjects, detectedObjects[i].originalImageBox, detectedObjectColor);
     }
 }
 
-void DeepPyramid::detect(Mat img)
+vector<ObjectBox> DeepPyramid::detect(Mat img)
 {
+    clear();
     setImg(img);
     createImagePyramid();
     createMax5Pyramid();
@@ -438,16 +486,89 @@ void DeepPyramid::detect(Mat img)
     cout<<"group rectangle"<<endl;
     calculateOriginalRectangle();
     groupOriginalRectangle();
-    cout<<"Face count:"<<detectedFaces.size()<<endl;
+    cout<<"boundbox regressor: TODO"<<endl;
+    cout<<"Object count:"<<detectedObjects.size()<<endl;
     cout<<"draw"<<endl;
-    drawFace();
-    imshow("RESULT", originalImgWithFace);
-    imwrite("RESULT.jpg", originalImgWithFace);
-    waitKey(0);
+    drawObjects();
+    return detectedObjects;
+}
+
+void DeepPyramid::clear()
+{
+    imagePyramid.clear();
+    max5.clear();
+    norm5.clear();
+    detectedObjects.clear();
+    meanValue.clear();
+    deviationValue.clear();
+    allObjects.clear();
+    detectedObjects.clear();
 }
 
 void DeepPyramid::addRootFilter(Size filterSize, CvSVM* classifier)
 {
     rootFilterSize.push_back(filterSize);
     rootFilterSVM.push_back(classifier);
+}
+
+Mat DeepPyramid::getImageWithObjects()
+{
+    return originalImgWithObjects;
+}
+
+void DeepPyramid::calculateToNorm5(Mat image)
+{
+    clear();
+    setImg(image);
+    createImagePyramid();
+    createMax5Pyramid();
+    createNorm5Pyramid();
+}
+int DeepPyramid::getNumLevel()
+{
+    return num_levels;
+}
+cv::Size DeepPyramid::originalImageSize()
+{
+    return Size(originalImg.cols,originalImg.rows);
+}
+
+int DeepPyramid::norm5SideLength()
+{
+    Blob<float>* output_layer = net_->output_blobs()[0];
+    int length=output_layer->width();
+    return length;
+}
+
+int DeepPyramid::chooseLevel(Size filterSize, Rect boundBox)
+{
+    double f[7];
+    for(int i=0;i<7;i++)
+    {
+
+        Rect r=getNorm5RectByOriginal(boundingBoxAtLevel(i,boundBox));
+
+        f[i]=abs(filterSize.width-r.width)+abs(r.height-filterSize.height);
+    }
+    double minVal=f[0];
+    int min=0;
+    for(int i=0;i<7;i++)
+    {
+        if(minVal>f[i])
+        {
+            minVal=f[i];
+            min=i;
+        }
+    }
+    return min;
+}
+
+Mat DeepPyramid::getNorm5(int level, int channel)
+{
+    return norm5[level][channel];
+}
+void DeepPyramid::clearFilter()
+{
+    rootFilterSize.clear();
+    rootFilterSVM.clear();
 }

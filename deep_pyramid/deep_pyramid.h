@@ -6,20 +6,15 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/ml/ml.hpp>
 #include <iostream>
-#include <math.h>
 #include <caffe/caffe.hpp>
 #include <caffe/common.hpp>
 #include <vector>
-#include <string>
-#include <sstream>
-#include <time.h>
-#include <opencv2/objdetect/objdetect.hpp>
 
 
 
-enum ClassificationType {FACE, NOT_FACE};
+enum ClassificationType {OBJECT, NOT_OBJECT};
 
-class FaceBox
+class ObjectBox
 {
 public:
     ClassificationType type;
@@ -33,8 +28,27 @@ public:
 class DeepPyramid
 {
 public:
+    void addRootFilter(cv::Size filterSize, CvSVM* classifier);
+    void setImg(cv::Mat img);
+    std::vector<ObjectBox> detect(cv::Mat img);
+    DeepPyramid(int num_levels, const std::string& model_file,
+                const std::string& trained_file);
+    cv::Mat getImageWithObjects();
+    void calculateToNorm5(cv::Mat image);
+    int getNumLevel();
+    cv::Mat getFeatureVector(int levelIndx, cv::Point position, cv::Size size);
+    cv::Size originalImageSize();
+    int norm5SideLength();
+    //Rectangle transform
+    cv::Rect boundingBoxAtLevel(int i, cv::Rect originalRect);
+    cv::Rect getRectByNorm5Rect(cv::Rect rect);
+    cv::Rect getNorm5RectByOriginal(cv::Rect originalRect);
+    int chooseLevel(cv::Size filterSize, cv::Rect boundBox);
+    cv::Mat getNorm5(int level, int channel);
+    void clearFilter();
+private:
     cv::Mat originalImg;
-    cv::Mat originalImgWithFace;
+    cv::Mat originalImgWithObjects;
     int num_levels;
     std::vector<cv::Mat> imagePyramid;
     std::vector< std::vector<cv::Mat> > max5;
@@ -43,41 +57,19 @@ public:
     std::vector<float> deviationValue;
     std::vector<cv::Size> rootFilterSize;
     std::vector<CvSVM*> rootFilterSVM;
-    std::vector<FaceBox> allFaces;
-    std::vector<cv::Rect> detectedFaces;
-    cv::PCA pca;
-    void save(const std::string &file_name)
-    {
-        cv::FileStorage fs(file_name,cv::FileStorage::WRITE);
-        fs << "mean" << pca.mean;
-        fs << "e_vectors" << pca.eigenvectors;
-        fs << "e_values" << pca.eigenvalues;
-        fs.release();
-    }
+    std::vector<ObjectBox> allObjects;
+    std::vector<ObjectBox> detectedObjects;
 
-    int load(const std::string &file_name)
-    {
-        cv::FileStorage fs(file_name,cv::FileStorage::READ);
-        fs["mean"] >> pca.mean ;
-        fs["e_vectors"] >> pca.eigenvectors ;
-        fs["e_values"] >> pca.eigenvalues ;
-        fs.release();
-return 0;
-    }
-    void drawFace();
+    cv::Scalar detectedObjectColor;
+
+    void drawObjects();
     caffe::shared_ptr<caffe::Net<float> > net_;
-    cv::Size input_geometry_;
-    int num_channels_;
+    int sideNetInputSquare;
+    int num_channels;
 
-    void detect(cv::Mat img);
-    DeepPyramid(int num_levels, const std::string& model_file,
-                const std::string& trained_file);
     void showImagePyramid();
-    void setImg(cv::Mat img);
     void createMax5PyramidTest();
     void showNorm5Pyramid();
-    void addRootFilter(cv::Size filterSize, CvSVM* classifier);
-public:
     //Image Pyramid
     cv::Size calculateLevelPyramidImageSize(int i);
     cv::Mat createLevelPyramidImage(int i);
@@ -99,7 +91,6 @@ public:
     void createNorm5Pyramid();
 
     //Root-Filter sliding window
-    cv::Mat getFeatureVector(int levelIndx, cv::Point position, cv::Size size);
     void rootFilterAtLevel(int rootFilterIndx, int levelIndx, int stride);
     void rootFilterConvolution();
 
@@ -107,6 +98,16 @@ public:
     void calculateImagePyramidRectangle();
     void calculateOriginalRectangle();
     void groupOriginalRectangle();
+
+    //Rectangle transform ARTICLE
+    cv::Rect getRectByNorm5Pixel_ARTICLE(cv::Point point);
+    cv::Rect getRectByNorm5Rect_ARTICLE(cv::Rect rect);
+    cv::Rect getNorm5RectByOriginal_ARTICLE(cv::Rect originalRect);
+    int centerConformity;
+    int boxSideConformity;
+
+    std::string to_string(int i);
+    void clear();
 
 };
 

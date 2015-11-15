@@ -376,6 +376,37 @@ Mat DeepPyramid::getFeatureVector(int levelIndx, Point position, Size size)
 
 }
 
+Mat DeepPyramid::getFeatureVector(Rect rect, Size size)
+{
+    int bestLevel=chooseLevel(size, rect);
+
+    Rect imagePyramidBounigBox=boundingBoxAtLevel(bestLevel, rect);
+    Rect objectRect=getNorm5RectByOriginal(imagePyramidBounigBox);
+    vector<Mat> norm5Resized;
+    for(int j=0;j<256;j++)
+    {
+        Mat m;
+        Mat objectMat=norm5[bestLevel][j];
+        resize(objectMat(objectRect), m, size);
+        norm5Resized.push_back(m);
+    }
+
+    cv::Mat feature(1, size.height*size.width*norm5.size(),CV_32FC1);
+    for(int w=0;w<size.width;w++)
+    {
+        for(int h=0;h<size.height;h++)
+        {
+            for(unsigned int k=0;k<norm5.size();k++)
+            {
+                int featureIndex=w+h*size.width+k*size.height*size.width;
+                feature.at<float>(0,featureIndex)=norm5Resized[k].at<float>(h,w);
+            }
+        }
+    }
+
+    return feature;
+}
+
 void DeepPyramid::rootFilterAtLevel(int rootFilterIndx, int levelIndx, int stride)
 {
     Size filterSize=rootFilterSize[rootFilterIndx];

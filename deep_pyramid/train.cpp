@@ -30,6 +30,52 @@ Rect ellipseToRect(int major_axis_radius,int minor_axis_radius,double angle,int 
     return Rect(Point(center_x-ySide/2.0,center_y-xSide/2.0),Size(ySide,xSide));
 }
 
+Rect readEllipseToRect(istream& file)
+{
+    double a, b, h, k, phi;
+    file>>a;
+    file>>b;
+    file>>phi;
+    file>>h;
+    file>>k;
+    int type;
+    file>>type;
+
+    return ellipseToRect(a,b,phi,h,k);
+}
+
+Mat diagMatrix(int n, float scalar)
+{
+    Mat I(n, n, CV_32FC1, Scalar::all(0));
+
+    for(int i=0;i<n;i++)
+    {
+        I.at<float>(i,i)=scalar;
+    }
+}
+
+Point centerOfRect(Rect rect)
+{
+    return Point(rect.x+rect.width/2.0, rect.y+rect.height/2.0);
+}
+struct TrainConfiguration
+{
+    string net_model_file;
+    string net_train_file;
+    Size filterSize;
+    int firstTrainSVMsample;
+    int retrainSVMiter;
+    int numPyramidLevel;
+    int trainImageFile;
+    int boundingBoxRegressorTrainData;
+    string SVM_file;
+    string boundBoxRegressor_file;
+    TrainConfiguration(string configFile)
+    {
+
+    }
+};
+
 int main(int argc, char *argv[])
 {
     Caffe::set_mode(Caffe::CPU);
@@ -47,7 +93,7 @@ int main(int argc, char *argv[])
     Mat features;
     Mat label;
     int iter=0;
-    while(file>>path&&iter<30)
+    while(file>>path && iter<30)
     {
         iter++;
         cout<<path<<endl;
@@ -58,17 +104,7 @@ int main(int argc, char *argv[])
         vector<Rect> objects;
         for(int i=0;i<n;i++)
         {
-
-            double a, b, h, k, phi;
-            file>>a;
-            file>>b;
-            file>>phi;
-            file>>h;
-            file>>k;
-            int type;
-            file>>type;
-
-            Rect  rect=ellipseToRect(a,b,phi,h,k);
+            Rect  rect=readEllipseToRect(file);
             objects.push_back(rect);
         }
 
@@ -119,36 +155,12 @@ int main(int argc, char *argv[])
 
         for(int i=0;i<n;i++)
         {
-            int bestLevel=pyramid.chooseLevel(filterSize,objects[i]);
-
-            Rect imagePyramidBounigBox=pyramid.boundingBoxAtLevel(bestLevel,objects[i]);
-            Rect objectRect=pyramid.getNorm5RectByOriginal(imagePyramidBounigBox);
-            vector<Mat> norm5;
-            for(int j=0;j<256;j++)
-            {
-                Mat m;
-                Mat objectMat=pyramid.getNorm5(bestLevel,j);
-                resize(objectMat(objectRect),m,filterSize);
-                norm5.push_back(m);
-            }
-
-            cv::Mat feature(1,filterSize.height*filterSize.width*norm5.size(),CV_32FC1);
-            for(int w=0;w<filterSize.width;w++)
-            {
-                for(int h=0;h<filterSize.height;h++)
-                {
-                    for(unsigned int k=0;k<norm5.size();k++)
-                    {
-                        int featureIndex=w+h*filterSize.width+k*filterSize.height*filterSize.width;
-                        feature.at<float>(0,featureIndex)=norm5[k].at<float>(h,w);
-                    }
-                }
-            }
-            features.push_back(feature);
+            features.push_back(pyramid.getFeatureVector(objects[i],filterSize));
             label.push_back(1);
         }
     }
     file.close();
+
     CvSVMParams params;
     params.svm_type    = CvSVM::C_SVC;
     params.kernel_type = CvSVM::POLY;
@@ -171,17 +183,7 @@ int main(int argc, char *argv[])
             vector<Rect> objects;
             for(int i=0;i<n;i++)
             {
-
-                double a, b, h, k, phi;
-                file>>a;
-                file>>b;
-                file>>phi;
-                file>>h;
-                file>>k;
-                int type;
-                file>>type;
-
-                Rect  rect=ellipseToRect(a,b,phi,h,k);
+                Rect  rect=readEllipseToRect(file);
                 objects.push_back(rect);
             }
 
@@ -201,32 +203,7 @@ int main(int argc, char *argv[])
                 }
                 if(addFalsePositive)
                 {
-                    int bestLevel=pyramid.chooseLevel(filterSize,detectedObject[i].originalImageBox);
-
-                    Rect imagePyramidBounigBox=pyramid.boundingBoxAtLevel(bestLevel,detectedObject[i].originalImageBox);
-                    Rect objectRect=pyramid.getNorm5RectByOriginal(imagePyramidBounigBox);
-                    vector<Mat> norm5;
-                    for(int j=0;j<256;j++)
-                    {
-                        Mat m;
-                        Mat objectMat=pyramid.getNorm5(bestLevel,j);
-                        resize(objectMat(objectRect),m,filterSize);
-                        norm5.push_back(m);
-                    }
-
-                    cv::Mat feature(1,filterSize.height*filterSize.width*norm5.size(),CV_32FC1);
-                    for(int w=0;w<filterSize.width;w++)
-                    {
-                        for(int h=0;h<filterSize.height;h++)
-                        {
-                            for(unsigned int k=0;k<norm5.size();k++)
-                            {
-                                int featureIndex=w+h*filterSize.width+k*filterSize.height*filterSize.width;
-                                feature.at<float>(0,featureIndex)=norm5[k].at<float>(h,w);
-                            }
-                        }
-                    }
-                    features.push_back(feature);
+                    features.push_back(pyramid.getFeatureVector(detectedObject[i].originalImageBox,filterSize));
                     label.push_back(-1);
                 }
             }
@@ -236,9 +213,103 @@ int main(int argc, char *argv[])
         pyramid.clearFilter();
         pyramid.addRootFilter(filterSize,&svm);
     }
+    svm.save("svm.xml");
+    features.release();
+    label.release();
 
+    vector< pair<Rect, Rect> > boundingBoxRegressorTrainData;
+    file.open(argv[5]);
+    while(file>>path && boundingBoxRegressorTrainData.size() < 100)
+    {
+        cout<<path<<endl;
+        Mat image;
+        image=imread(path+".jpg");
+        int n;
+        file>>n;
+        vector<Rect> objects;
+        for(int i=0;i<n;i++)
+        {
+            Rect  rect=readEllipseToRect(file);
+            objects.push_back(rect);
+        }
 
+        vector<ObjectBox> detectedObject;
+        detectedObject=pyramid.detect(image);
 
+        for(int i=0;i<detectedObject.size();i++)
+            for(int j=0;j<objects.size();j++)
+            {
+                if(IOU(objects[j],detectedObject[i].originalImageBox)>0.6)
+                {
+                    pair< Rect, Rect> group;
+                    group.first=objects[j];
+                    group.second=detectedObject[i].originalImageBox;
+                }
+            }
+    }
+
+    Mat Tx;
+    Mat Ty;
+    Mat Tw;
+    Mat Th;
+    Mat X;
+
+    for(int i=0;i<boundingBoxRegressorTrainData.size();i++)
+    {
+        Rect G=boundingBoxRegressorTrainData[i].first;
+        Rect P=boundingBoxRegressorTrainData[i].second;
+
+        float tx=(centerOfRect(G).x-centerOfRect(P).x)/(double)P.width;
+        float ty=(centerOfRect(G).y-centerOfRect(P).y)/(double)P.height;
+        float tw=log(G.width/(double)P.width);
+        float th=log(G.height/(double)P.height);
+        Tx.push_back(tx);
+        Ty.push_back(ty);
+        Tw.push_back(tw);
+        Th.push_back(th);
+        Mat boundBoxFeature=pyramid.getFeatureVector(P,filterSize);
+        X.push_back(boundBoxFeature);
+    }
+
+    Mat XT;
+
+    transpose(X, XT);
+    Mat XTX;
+    XTX=XT*X;
+    X.release();
+    float A=100;
+    Mat I=diagMatrix(XTX.cols, A);
+    XTX+=I;
+    I.release();
+    Mat revXTX;
+    invert(XTX,revXTX);
+
+    XTX.release();
+
+    Mat Wx,Wy,Ww,Wh;
+
+    Mat XTTx;
+    XTTx=XT*Tx;
+
+    Wx=revXTX*XTTx;
+
+    Mat XTTy;
+
+    XTTy=XT*Ty;
+
+    Wy=revXTX*XTTy;
+
+    Mat XTTw;
+
+    XTTw=XT*Tw;
+
+    Ww=revXTX*XTTw;
+
+    Mat XTTh;
+
+    XTTh=XT*Th;
+
+    Wh=revXTX*XTTh;
 
     return 0;
 }

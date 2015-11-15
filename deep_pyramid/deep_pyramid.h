@@ -46,6 +46,7 @@ public:
     int chooseLevel(cv::Size filterSize, cv::Rect boundBox);
     cv::Mat getNorm5(int level, int channel);
     void clearFilter();
+    cv::Mat getFeatureVector(cv::Rect rect, cv::Size size);
 private:
     cv::Mat originalImg;
     cv::Mat originalImgWithObjects;

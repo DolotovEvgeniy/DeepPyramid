@@ -173,7 +173,7 @@ void DeepPyramid::showImagePyramid()
 
 //Image Pyramid
 //
-Size DeepPyramid::calculateLevelPyramidImageSize(int i)
+Size DeepPyramid::calculateImageSizeInPyramidAtLevel(int i)
 {
     Size levelPyramidImageSize;
     if(originalImg.rows<=originalImg.cols)
@@ -193,7 +193,7 @@ Size DeepPyramid::calculateLevelPyramidImageSize(int i)
 Mat DeepPyramid::createLevelPyramidImage(int i)
 {
     Mat levelImg(sideNetInputSquare,sideNetInputSquare,CV_8UC3,Scalar(0,0,0));
-    Size pictureSize=calculateLevelPyramidImageSize(i);
+    Size pictureSize=calculateImageSizeInPyramidAtLevel(i);
     Mat resizedImg;
     resize(originalImg, resizedImg, pictureSize);
     resizedImg.copyTo(levelImg(Rect(Point(0,0),pictureSize)));
@@ -275,17 +275,15 @@ void DeepPyramid::calculateNetAtLevel(int i)
 std::vector<Mat> DeepPyramid::wrapNetOutputLayer()
 {
     Blob<float>* output_layer = net_->output_blobs()[0];
-    const float* begin = output_layer->cpu_data();
-    float* data=new float[output_layer->height()*output_layer->width()];
+    const float* output_data = output_layer->cpu_data();
+    int mapSize=output_layer->height()*output_layer->width();
+    float* data=new float[mapSize];
 
     std::vector<Mat> max5Level;
-
-    for(int k=0;k<output_layer->channels();k++)
+    for(int channel=0;channel<output_layer->channels();channel++)
     {
-        for(int i=0;i<output_layer->height()*output_layer->width();i++)
-        {
-            data[i]=begin[i+output_layer->height()*output_layer->width()*k];
-        }
+        memcpy(data,output_data, mapSize*sizeof(float));
+        output_data+=mapSize;
         Mat conv(output_layer->height(),output_layer->width(), CV_32FC1, data);
         max5Level.push_back(conv.clone());
     }
@@ -506,11 +504,7 @@ void DeepPyramid::drawObjects()
 
 vector<ObjectBox> DeepPyramid::detect(Mat img)
 {
-    clear();
-    setImg(img);
-    createImagePyramid();
-    createMax5Pyramid();
-    createNorm5Pyramid();
+    calculateToNorm5(img);
     cout<<"filter"<<endl;
     rootFilterConvolution();
     cout<<"group rectangle"<<endl;
@@ -518,7 +512,6 @@ vector<ObjectBox> DeepPyramid::detect(Mat img)
     groupOriginalRectangle();
     cout<<"boundbox regressor: TODO"<<endl;
     cout<<"Object count:"<<detectedObjects.size()<<endl;
-    cout<<"draw"<<endl;
     drawObjects();
     return detectedObjects;
 }

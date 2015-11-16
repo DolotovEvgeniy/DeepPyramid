@@ -74,7 +74,7 @@ private:
     void createMax5PyramidTest();
     void showNorm5Pyramid();
     //Image Pyramid
-    cv::Size calculateLevelPyramidImageSize(int i);
+    cv::Size calculateImageSizeInPyramidAtLevel(int i);
     cv::Mat createLevelPyramidImage(int i);
     void createImagePyramid();
 

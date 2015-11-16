@@ -35,7 +35,7 @@ int main(int argc, char *argv[])
         vector<ObjectBox> objects=pyramid.detect(image);
         output_file<<img_path<<endl;
         output_file<<objects.size()<<endl;
-        for(int i=0;i<objects.size();i++)
+        for(unsigned int i=0;i<objects.size();i++)
         {
             output_file<<objects[i].originalImageBox.x<<" ";
             output_file<<objects[i].originalImageBox.y<<" ";

@@ -52,6 +52,7 @@ Mat diagMatrix(int n, float scalar)
     {
         I.at<float>(i,i)=scalar;
     }
+    return I;
 }
 
 Point centerOfRect(Rect rect)
@@ -236,8 +237,8 @@ int main(int argc, char *argv[])
         vector<ObjectBox> detectedObject;
         detectedObject=pyramid.detect(image);
 
-        for(int i=0;i<detectedObject.size();i++)
-            for(int j=0;j<objects.size();j++)
+        for(unsigned int i=0;i<detectedObject.size();i++)
+            for(unsigned int j=0;j<objects.size();j++)
             {
                 if(IOU(objects[j],detectedObject[i].originalImageBox)>0.6)
                 {
@@ -254,7 +255,7 @@ int main(int argc, char *argv[])
     Mat Th;
     Mat X;
 
-    for(int i=0;i<boundingBoxRegressorTrainData.size();i++)
+    for(unsigned int i=0;i<boundingBoxRegressorTrainData.size();i++)
     {
         Rect G=boundingBoxRegressorTrainData[i].first;
         Rect P=boundingBoxRegressorTrainData[i].second;

@@ -1,5 +1,7 @@
 #include <nms.h>
 #include <opencv2/objdetect/objdetect.hpp>
+#include <algorithm>
+
 using namespace std;
 using namespace cv;
 
@@ -9,23 +11,15 @@ vector<ObjectBox> nms_max(vector<ObjectBox> objects, double threshold)
     vector<ObjectBox> detectedObjects;
     while(!objects.empty())
     {
-        int max=0;
-        for(unsigned int i=0;i<objects.size();i++)
-        {
-            if(objects[i].confidence>objects[max].confidence)
-            {
-                max=i;
-            }
-        }
-        detectedObjects.push_back(objects[max]);
+        ObjectBox objectWithMaxConfidence=*max_element(objects.begin(),objects.end());
+        detectedObjects.push_back(objectWithMaxConfidence);
         vector<ObjectBox> newObjects;
         for(unsigned int i=0;i<objects.size();i++)
         {
-            if(IOU(objects[max].originalImageBox,objects[i].originalImageBox)<=threshold)
+            if(IOU(objectWithMaxConfidence.originalImageBox,objects[i].originalImageBox)<=threshold)
             {
                 newObjects.push_back(objects[i]);
             }
-
         }
         objects=newObjects;
     }
@@ -55,22 +49,16 @@ vector<ObjectBox> nms_avg(vector<ObjectBox> objects, double box_threshold, doubl
 {
     vector<ObjectBox> detectedObjects;
     vector< vector<ObjectBox> > clusters;
+    vector<double> maxConfidenceInCluster;
     while(!objects.empty())
     {
-        int max=0;
-        for(unsigned int i=0;i<objects.size();i++)
-        {
-            if(objects[i].confidence>objects[max].confidence)
-            {
-                max=i;
-            }
-        }
+        ObjectBox objectWithMaxConfidence=*max_element(objects.begin(),objects.end());
         vector<ObjectBox> cluster;
-        cluster.push_back(objects[max]);
+        cluster.push_back(objectWithMaxConfidence);
         vector<ObjectBox> newObjects;
         for(unsigned int i=0;i<objects.size();i++)
         {
-            if(IOU(objects[max].originalImageBox,objects[i].originalImageBox)<=box_threshold)
+            if(IOU(objectWithMaxConfidence.originalImageBox,objects[i].originalImageBox)<=box_threshold)
             {
                 newObjects.push_back(objects[i]);
             }
@@ -81,6 +69,7 @@ vector<ObjectBox> nms_avg(vector<ObjectBox> objects, double box_threshold, doubl
 
         }
         clusters.push_back(cluster);
+        maxConfidenceInCluster.push_back(objectWithMaxConfidence.confidence);
         objects=newObjects;
     }
     for(unsigned int i=0;i<clusters.size();i++)
@@ -88,19 +77,10 @@ vector<ObjectBox> nms_avg(vector<ObjectBox> objects, double box_threshold, doubl
         vector<ObjectBox> boxInCluster;
         boxInCluster=clusters[i];
         cout<<"Box in cluster:"<<boxInCluster.size()<<endl;
-        int max=0;
-        for(unsigned int i=0;i<boxInCluster.size();i++)
-        {
-            if(boxInCluster[i].confidence>boxInCluster[max].confidence)
-            {
-                max=i;
-            }
-        }
-        double maxConfidence=boxInCluster[max].confidence;
         vector<Rect> rectWithMaxConfidence;
         for(unsigned int i=0;i<boxInCluster.size();i++)
         {
-            if(boxInCluster[i].confidence>confidence_threshold*maxConfidence)
+            if(boxInCluster[i].confidence>confidence_threshold*maxConfidenceInCluster[i])
             {
                 rectWithMaxConfidence.push_back(boxInCluster[i].originalImageBox);
             }
@@ -108,7 +88,7 @@ vector<ObjectBox> nms_avg(vector<ObjectBox> objects, double box_threshold, doubl
         cout<<"box with max conf:"<<rectWithMaxConfidence.size()<<endl;
         ObjectBox resultObject;
         resultObject.originalImageBox=avg_rect(rectWithMaxConfidence);
-        resultObject.confidence=maxConfidence;
+        resultObject.confidence=maxConfidenceInCluster[i];
         detectedObjects.push_back(resultObject);
     }
 

@@ -23,6 +23,10 @@ public:
     cv::Rect norm5Box;
     cv::Rect pyramidImageBox;
     cv::Rect originalImageBox;
+    bool operator< (ObjectBox object)
+    {
+        return confidence<object.confidence;
+    }
 };
 
 class DeepPyramid

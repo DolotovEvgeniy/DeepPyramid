@@ -156,7 +156,7 @@ void DeepPyramid::showNorm5Pyramid()
         }
 }
 
-void DeepPyramid::setImg(Mat img)
+void DeepPyramid::setImg(Mat& img)
 {
     img.copyTo(originalImg);
 }
@@ -426,10 +426,9 @@ void DeepPyramid::rootFilterAtLevel(int rootFilterIndx, int levelIndx, int strid
 
             predict=filterSVM->predict(feature);
 
-            if(predict==1)
+            if(predict==OBJECT)
             {
                 ObjectBox object;
-                object.type=OBJECT;
                 object.confidence=std::fabs(filterSVM->predict(feature,true));
                 object.level=levelIndx;
                 object.norm5Box=Rect(p,filterSize);

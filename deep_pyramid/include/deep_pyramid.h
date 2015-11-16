@@ -10,14 +10,12 @@
 #include <caffe/common.hpp>
 #include <vector>
 
-
-
-enum ClassificationType {OBJECT, NOT_OBJECT};
+#define OBJECT 1
+#define NOT_OBJECT -1
 
 class ObjectBox
 {
 public:
-    ClassificationType type;
     double confidence;
     int level;
     cv::Rect norm5Box;
@@ -33,7 +31,7 @@ class DeepPyramid
 {
 public:
     void addRootFilter(cv::Size filterSize, CvSVM* classifier);
-    void setImg(cv::Mat img);
+    void setImg(cv::Mat& img);
     std::vector<ObjectBox> detect(cv::Mat img);
     DeepPyramid(int num_levels, const std::string& model_file,
                 const std::string& trained_file);

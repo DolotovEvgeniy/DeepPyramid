@@ -148,7 +148,7 @@ int main(int argc, char *argv[])
                     {
                         Mat feature=pyramid.getFeatureVector(level,p,Size(7,11));
                         features.push_back(feature);
-                        label.push_back(-1);
+                        label.push_back(NOT_OBJECT);
                     }
 
                 }
@@ -157,7 +157,7 @@ int main(int argc, char *argv[])
         for(int i=0;i<n;i++)
         {
             features.push_back(pyramid.getFeatureVector(objects[i],filterSize));
-            label.push_back(1);
+            label.push_back(OBJECT);
         }
     }
     file.close();
@@ -205,7 +205,7 @@ int main(int argc, char *argv[])
                 if(addFalsePositive)
                 {
                     features.push_back(pyramid.getFeatureVector(detectedObject[i].originalImageBox,filterSize));
-                    label.push_back(-1);
+                    label.push_back(NOT_OBJECT);
                 }
             }
         }

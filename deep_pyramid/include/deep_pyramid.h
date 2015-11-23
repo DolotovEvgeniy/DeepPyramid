@@ -10,12 +10,14 @@
 #include <caffe/common.hpp>
 #include <vector>
 
-#define OBJECT 1
-#define NOT_OBJECT -1
+
+
+enum ClassificationType {OBJECT, NOT_OBJECT};
 
 class ObjectBox
 {
 public:
+    ClassificationType type;
     double confidence;
     int level;
     cv::Rect norm5Box;
@@ -31,7 +33,7 @@ class DeepPyramid
 {
 public:
     void addRootFilter(cv::Size filterSize, CvSVM* classifier);
-    void setImg(cv::Mat& img);
+    void setImg(cv::Mat img);
     std::vector<ObjectBox> detect(cv::Mat img);
     DeepPyramid(int num_levels, const std::string& model_file,
                 const std::string& trained_file);
@@ -49,6 +51,9 @@ public:
     cv::Mat getNorm5(int level, int channel);
     void clearFilter();
     cv::Mat getFeatureVector(cv::Rect rect, cv::Size size);
+
+    std::string to_string(int i);
+    DeepPyramid(std::string detector_config);
 private:
     cv::Mat originalImg;
     cv::Mat originalImgWithObjects;
@@ -74,7 +79,7 @@ private:
     void createMax5PyramidTest();
     void showNorm5Pyramid();
     //Image Pyramid
-    cv::Size calculateImageSizeInPyramidAtLevel(int i);
+    cv::Size calculateLevelPyramidImageSize(int i);
     cv::Mat createLevelPyramidImage(int i);
     void createImagePyramid();
 
@@ -108,8 +113,6 @@ private:
     cv::Rect getNorm5RectByOriginal_ARTICLE(cv::Rect originalRect);
     int centerConformity;
     int boxSideConformity;
-
-    std::string to_string(int i);
     void clear();
 
 };

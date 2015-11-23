@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<opencv_storage>
+
+<!--Path to neural network(.prototxt)-->
+<NeuralNetwork-configuration>
+supervisionCNN.prototxt
+</NeuralNetwork-configuration>
+
+<!--Path to neural network trained model(.caffemodel)-->
+<NeuralNetwork-trained-model>
+bvlc_alexnet.caffemodel
+</NeuralNetwork-trained-model>
+
+<!--Path to trained SVM(.xml)-->
+<SVM>
+svm.xml
+</SVM>
+
+<!-- Size of sliding window (width x height)-->
+<Filter-size>
+  7 11
+</Filter-size>
+
+</opencv_storage>

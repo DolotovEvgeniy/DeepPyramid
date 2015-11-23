@@ -1,3 +1,4 @@
+
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
@@ -13,7 +14,7 @@ using namespace caffe;
 
 int main(int argc, char *argv[])
 {
-    Caffe::set_mode(Caffe::CPU);
+    Caffe::set_mode(Caffe::GPU);
 
     string alexnet_model_file=argv[1];
     string alexnet_trained_file=argv[2];
@@ -27,10 +28,11 @@ int main(int argc, char *argv[])
     ifstream input_file(test_file.c_str());
     ofstream output_file(argv[7]);
     string img_path;
+    int img_num=1;
     while(input_file>>img_path)
     {
         Mat image;
-        image=imread(img_path+".jpg");
+        image=imread("/home/maljutina_e/"+img_path+".jpg");
         vector<ObjectBox> objects=pyramid.detect(image);
         output_file<<img_path<<endl;
         output_file<<objects.size()<<endl;
@@ -42,6 +44,7 @@ int main(int argc, char *argv[])
             output_file<<objects[i].originalImageBox.height<<" ";
             output_file<<objects[i].confidence<<endl;
         }
+        imwrite("result_image/"+test_file+pyramid.to_string(img_num)+"_res.jpg", pyramid.getImageWithObjects());
 
     }
     input_file.close();

@@ -18,6 +18,9 @@ if (CMAKE_COMPILER_IS_GNUCXX)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -Wall")
 endif()
 
+set(CMAKE_SCRIPT_DIR ${CMAKE_SOURCE_DIR}/CMakeScripts)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SCRIPT_DIR})
+
 find_package(OpenCV REQUIRED)
 include_directories(${OPENCV_INCLUDE_DIR})
 target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS})
@@ -36,8 +39,6 @@ if (WITH_CPU_ONLY)
    add_definitions(-DCPU_ONLY)
 endif()
 
-set(CMAKE_SCRIPT_DIR ${CMAKE_SOURCE_DIR}/CMakeScripts)
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SCRIPT_DIR})
 
 add_subdirectory(samples)
 

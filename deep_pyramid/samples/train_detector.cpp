@@ -79,7 +79,7 @@ struct TrainConfiguration
 
 int main(int argc, char *argv[])
 {
-    Caffe::set_mode(Caffe::CPU);
+    Caffe::set_mode(Caffe::GPU);
 
     string alexnet_model_file=argv[1];
     string alexnet_trained_file=argv[2];
@@ -148,7 +148,7 @@ int main(int argc, char *argv[])
                     {
                         Mat feature=pyramid.getFeatureVector(level,p,Size(7,11));
                         features.push_back(feature);
-                        label.push_back(NOT_OBJECT);
+                        label.push_back(-1);
                     }
 
                 }
@@ -157,7 +157,7 @@ int main(int argc, char *argv[])
         for(int i=0;i<n;i++)
         {
             features.push_back(pyramid.getFeatureVector(objects[i],filterSize));
-            label.push_back(OBJECT);
+            label.push_back(1);
         }
     }
     file.close();
@@ -205,7 +205,7 @@ int main(int argc, char *argv[])
                 if(addFalsePositive)
                 {
                     features.push_back(pyramid.getFeatureVector(detectedObject[i].originalImageBox,filterSize));
-                    label.push_back(NOT_OBJECT);
+                    label.push_back(-1);
                 }
             }
         }

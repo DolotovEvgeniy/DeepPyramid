@@ -156,7 +156,7 @@ void DeepPyramid::showNorm5Pyramid()
         }
 }
 
-void DeepPyramid::setImg(Mat& img)
+void DeepPyramid::setImg(Mat img)
 {
     img.copyTo(originalImg);
 }
@@ -173,7 +173,7 @@ void DeepPyramid::showImagePyramid()
 
 //Image Pyramid
 //
-Size DeepPyramid::calculateImageSizeInPyramidAtLevel(int i)
+Size DeepPyramid::calculateLevelPyramidImageSize(int i)
 {
     Size levelPyramidImageSize;
     if(originalImg.rows<=originalImg.cols)
@@ -193,7 +193,7 @@ Size DeepPyramid::calculateImageSizeInPyramidAtLevel(int i)
 Mat DeepPyramid::createLevelPyramidImage(int i)
 {
     Mat levelImg(sideNetInputSquare,sideNetInputSquare,CV_8UC3,Scalar(0,0,0));
-    Size pictureSize=calculateImageSizeInPyramidAtLevel(i);
+    Size pictureSize=calculateLevelPyramidImageSize(i);
     Mat resizedImg;
     resize(originalImg, resizedImg, pictureSize);
     resizedImg.copyTo(levelImg(Rect(Point(0,0),pictureSize)));
@@ -275,15 +275,17 @@ void DeepPyramid::calculateNetAtLevel(int i)
 std::vector<Mat> DeepPyramid::wrapNetOutputLayer()
 {
     Blob<float>* output_layer = net_->output_blobs()[0];
-    const float* output_data = output_layer->cpu_data();
-    int mapSize=output_layer->height()*output_layer->width();
-    float* data=new float[mapSize];
+    const float* begin = output_layer->cpu_data();
+    float* data=new float[output_layer->height()*output_layer->width()];
 
     std::vector<Mat> max5Level;
-    for(int channel=0;channel<output_layer->channels();channel++)
+
+    for(int k=0;k<output_layer->channels();k++)
     {
-        memcpy(data,output_data, mapSize*sizeof(float));
-        output_data+=mapSize;
+        for(int i=0;i<output_layer->height()*output_layer->width();i++)
+        {
+            data[i]=begin[i+output_layer->height()*output_layer->width()*k];
+        }
         Mat conv(output_layer->height(),output_layer->width(), CV_32FC1, data);
         max5Level.push_back(conv.clone());
     }
@@ -424,9 +426,10 @@ void DeepPyramid::rootFilterAtLevel(int rootFilterIndx, int levelIndx, int strid
 
             predict=filterSVM->predict(feature);
 
-            if(predict==OBJECT)
+            if(predict==1)
             {
                 ObjectBox object;
+                object.type=OBJECT;
                 object.confidence=std::fabs(filterSVM->predict(feature,true));
                 object.level=levelIndx;
                 object.norm5Box=Rect(p,filterSize);
@@ -504,7 +507,11 @@ void DeepPyramid::drawObjects()
 
 vector<ObjectBox> DeepPyramid::detect(Mat img)
 {
-    calculateToNorm5(img);
+    clear();
+    setImg(img);
+    createImagePyramid();
+    createMax5Pyramid();
+    createNorm5Pyramid();
     cout<<"filter"<<endl;
     rootFilterConvolution();
     cout<<"group rectangle"<<endl;
@@ -512,6 +519,7 @@ vector<ObjectBox> DeepPyramid::detect(Mat img)
     groupOriginalRectangle();
     cout<<"boundbox regressor: TODO"<<endl;
     cout<<"Object count:"<<detectedObjects.size()<<endl;
+    cout<<"draw"<<endl;
     drawObjects();
     return detectedObjects;
 }
@@ -594,4 +602,33 @@ void DeepPyramid::clearFilter()
 {
     rootFilterSize.clear();
     rootFilterSVM.clear();
+}
+
+DeepPyramid::DeepPyramid(std::string detector_config)
+{
+    FileStorage config(detector_config, FileStorage::READ);
+
+    string model_file;
+    config["NeuralNetwork-configuration"]>>model_file;
+    string trained_net_file;
+    config["NeuralNetwork-trained-model"]>>trained_net_file;
+    string svm_trained_file;
+    config["SVM"]>>svm_trained_file;
+    Size filterSize;
+    config["Filter-size"]>>filterSize;
+
+    this->num_levels=7;
+    net_.reset(new Net<float>(model_file, TEST));
+    net_->CopyTrainedLayersFrom(trained_net_file);
+    Blob<float>* input_layer = net_->input_blobs()[0];
+    num_channels = input_layer->channels();
+    assert(input_layer->width()==input_layer->height());
+    sideNetInputSquare=input_layer->width();
+    detectedObjectColor=Scalar(0,255,0);
+    centerConformity=16;
+    boxSideConformity=81;
+
+    CvSVM classifier;
+    classifier.load(svm_trained_file.c_str());
+    addRootFilter(filterSize,&classifier);
 }

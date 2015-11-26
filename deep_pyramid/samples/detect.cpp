@@ -12,17 +12,16 @@ using namespace caffe;
 
 int main(int argc, char *argv[])
 {
-    Caffe::set_mode(Caffe::CPU);
     Mat image;
+    string config_file=argv[1];
+    DeepPyramid pyramid(config_file);
 
-    DeepPyramid pyramid(argv[1]);
     string image_file=argv[2];
-
     image=imread(image_file);
 
     pyramid.detect(image);
 
     imwrite(image_file+"_res.jpg", pyramid.getImageWithObjects());
-    cout<<"here!"<<endl;
+
     return 0;
 }

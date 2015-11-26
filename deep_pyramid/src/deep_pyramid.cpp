@@ -359,21 +359,20 @@ void DeepPyramid::createNorm5Pyramid()
 
 //Root-Filter sliding window
 //
-Mat DeepPyramid::getFeatureVector(int levelIndx, Point position, Size size)
+void DeepPyramid::getFeatureVector(int levelIndx, Point position, Size size, Mat& feature)
 {
-    Mat feature(1,size.height*size.width*norm5[levelIndx].size(),CV_32FC1);
-    for(int w=0;w<size.width;w++)
+    for(unsigned int k=0;k<norm5[levelIndx].size();k++)
     {
+        Mat m;
+        norm5[levelIndx][k](Rect(position, size)).copyTo(m);
         for(int h=0;h<size.height;h++)
         {
-            for(unsigned int k=0;k<norm5[levelIndx].size();k++)
+            for(int w=0;w<size.width;w++)
             {
-                feature.at<float>(0,w+h*size.width+k*size.height*size.width)=norm5[levelIndx][k].at<float>(position.y+h,position.x+w);
+                feature.at<float>(0,w+h*size.width+k*size.height*size.width)=m.at<float>(h, w);
             }
         }
     }
-    return feature;
-
 }
 
 Mat DeepPyramid::getFeatureVector(Rect rect, Size size)
@@ -412,24 +411,27 @@ void DeepPyramid::rootFilterAtLevel(int rootFilterIndx, int levelIndx, int strid
     Size filterSize=rootFilterSize[rootFilterIndx];
     CvSVM* filterSVM=rootFilterSVM[rootFilterIndx];
     int stepWidth, stepHeight;
-
+    cout<<"here!"<<endl;
     stepWidth=((norm5[levelIndx][0].cols/pow(2,(num_levels-1-levelIndx)/2.0)-filterSize.width)/stride)+1;
     stepHeight=((norm5[levelIndx][0].rows/pow(2,(num_levels-1-levelIndx)/2.0)-filterSize.height)/stride)+1;
     int detectedObjectCount=0;
+
     for(int w=0;w<stepWidth;w+=stride)
         for(int h=0;h<stepHeight;h+=stride)
         {
 
             Point p(stride*w,stride*h);
-            cv::Mat feature=getFeatureVector(levelIndx,p,filterSize);
+            TIMER_START(FEATURE);
+            cv::Mat feature(1,filterSize.height*filterSize.width*norm5[levelIndx].size(),CV_32FC1);
+            getFeatureVector(levelIndx,p,filterSize, feature);
+            TIMER_END(FEATURE);
             int predict;
-
+            TIMER_START(PREDICT);
             predict=filterSVM->predict(feature);
-
-            if(predict==1)
+            TIMER_END(PREDICT);
+            if(predict==OBJECT)
             {
                 ObjectBox object;
-                object.type=OBJECT;
                 object.confidence=std::fabs(filterSVM->predict(feature,true));
                 object.level=levelIndx;
                 object.norm5Box=Rect(p,filterSize);
@@ -446,7 +448,9 @@ void DeepPyramid::rootFilterConvolution()
         for(unsigned int j=0;j<norm5.size();j++)
         {
             cout<<"Convolution with SVM level "+to_string(j+1)+"..."<<endl;
+            const clock_t begin_time = clock();
             rootFilterAtLevel(i,j,1);
+            cout << "Time:"<<float( clock () - begin_time ) /  CLOCKS_PER_SEC<<" s."<<endl;
             cout<<"Status: Success!"<<endl;
         }
 }
@@ -608,6 +612,12 @@ DeepPyramid::DeepPyramid(std::string detector_config)
 {
     FileStorage config(detector_config, FileStorage::READ);
 
+#ifdef CPU_ONLY
+    Caffe::set_mode(Caffe::CPU);
+#else
+    Caffe::set_mode(Caffe::GPU);
+#endif
+
     string model_file;
     config["NeuralNetwork-configuration"]>>model_file;
     string trained_net_file;
@@ -628,7 +638,7 @@ DeepPyramid::DeepPyramid(std::string detector_config)
     centerConformity=16;
     boxSideConformity=81;
 
-    CvSVM classifier;
-    classifier.load(svm_trained_file.c_str());
-    addRootFilter(filterSize,&classifier);
+    CvSVM* classifier=new CvSVM();
+    classifier->load(svm_trained_file.c_str());
+    addRootFilter(filterSize,classifier);
 }

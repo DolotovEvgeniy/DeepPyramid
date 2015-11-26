@@ -10,14 +10,22 @@
 #include <caffe/common.hpp>
 #include <vector>
 
+#if 1
+    #include <stdio.h>
+    #define TIMER_START(name) int64 t_##name = getTickCount()
+    #define TIMER_END(name) printf("TIMER_" #name ":\t%6.2fms\n", \
+                1000.f * ((getTickCount() - t_##name) / getTickFrequency()))
+#else
+    #define TIMER_START(name)
+    #define TIMER_END(name)
+#endif
 
-
-enum ClassificationType {OBJECT, NOT_OBJECT};
+#define OBJECT 1
+#define NOT_OBJECT -1
 
 class ObjectBox
 {
 public:
-    ClassificationType type;
     double confidence;
     int level;
     cv::Rect norm5Box;
@@ -40,7 +48,7 @@ public:
     cv::Mat getImageWithObjects();
     void calculateToNorm5(cv::Mat image);
     int getNumLevel();
-    cv::Mat getFeatureVector(int levelIndx, cv::Point position, cv::Size size);
+    void getFeatureVector(int levelIndx, cv::Point position, cv::Size size, cv::Mat& feature);
     cv::Size originalImageSize();
     int norm5SideLength();
     //Rectangle transform

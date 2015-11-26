@@ -14,8 +14,6 @@ using namespace caffe;
 
 int main(int argc, char *argv[])
 {
-    Caffe::set_mode(Caffe::GPU);
-
     string alexnet_model_file=argv[1];
     string alexnet_trained_file=argv[2];
     string svm_trained_file=argv[3];

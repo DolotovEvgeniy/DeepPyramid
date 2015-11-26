@@ -79,8 +79,6 @@ struct TrainConfiguration
 
 int main(int argc, char *argv[])
 {
-    Caffe::set_mode(Caffe::GPU);
-
     string alexnet_model_file=argv[1];
     string alexnet_trained_file=argv[2];
 
@@ -146,7 +144,8 @@ int main(int argc, char *argv[])
                     }
                     if(addNeg)
                     {
-                        Mat feature=pyramid.getFeatureVector(level,p,Size(7,11));
+                        Mat feature(1,7*11*256,CV_32FC1);
+                                pyramid.getFeatureVector(level,p,Size(7,11), feature);
                         features.push_back(feature);
                         label.push_back(-1);
                     }

@@ -577,25 +577,16 @@ int DeepPyramid::norm5SideLength()
 
 int DeepPyramid::chooseLevel(Size filterSize, Rect boundBox)
 {
-    double f[7];
-    for(int i=0;i<7;i++)
+    vector<double> f;
+    for(int i=0;i<num_levels;i++)
     {
-
         Rect r=getNorm5RectByOriginal(boundingBoxAtLevel(i,boundBox));
 
-        f[i]=abs(filterSize.width-r.width)+abs(r.height-filterSize.height);
+        f.push_back(abs(filterSize.width-r.width)+abs(r.height-filterSize.height));
     }
-    double minVal=f[0];
-    int min=0;
-    for(int i=0;i<7;i++)
-    {
-        if(minVal>f[i])
-        {
-            minVal=f[i];
-            min=i;
-        }
-    }
-    return min;
+    int bestLevel=distance(f.begin(), min_element(f.begin(), f.end()));
+
+    return bestLevel;
 }
 
 Mat DeepPyramid::getNorm5(int level, int channel)

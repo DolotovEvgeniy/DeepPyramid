@@ -1,4 +1,3 @@
-
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
@@ -14,23 +13,34 @@ using namespace caffe;
 
 int main(int argc, char *argv[])
 {
-    string alexnet_model_file=argv[1];
-    string alexnet_trained_file=argv[2];
-    string svm_trained_file=argv[3];
-    DeepPyramid pyramid(7,alexnet_model_file, alexnet_trained_file);
+    string config_file=argv[1];
+    DeepPyramid pyramid(config_file, DeepPyramidMode::TEST);
 
-    CvSVM classifier;
-    classifier.load(svm_trained_file.c_str());
-    pyramid.addRootFilter(Size(atoi(argv[4]),atoi(argv[5])),&classifier);
-    string test_file=argv[6];
-    ifstream input_file(test_file.c_str());
-    ofstream output_file(argv[7]);
+    FileStorage config(config_file, FileStorage::READ);
+
+    string test_file_path;
+    config["FileWithTestImage"]>>test_file_path;
+
+    string output_file_path;
+    config["OutputFile"]>>output_file_path;
+
+    string test_image_folder;
+    config["TestImageFolder"]>>test_image_folder;
+
+    string result_image_folder;
+    config["TestImageResultFolder"]>>result_image_folder;
+
+    bool saveImage;
+    config["SaveTestImageResult"]>>saveImage;
+
+    ifstream test_file(test_file_path);
+    ofstream output_file(output_file_path);
+
     string img_path;
-    int img_num=1;
-    while(input_file>>img_path)
+    while(test_file>>img_path)
     {
         Mat image;
-        image=imread("/home/maljutina_e/"+img_path+".jpg");
+        image=imread(test_image_folder+img_path+".jpg");
         vector<ObjectBox> objects=pyramid.detect(image);
         output_file<<img_path<<endl;
         output_file<<objects.size()<<endl;
@@ -42,10 +52,16 @@ int main(int argc, char *argv[])
             output_file<<objects[i].originalImageBox.height<<" ";
             output_file<<objects[i].confidence<<endl;
         }
-        imwrite("result_image/"+test_file+pyramid.to_string(img_num)+"_res.jpg", pyramid.getImageWithObjects());
 
+        if(saveImage)
+        {
+            string test_image_name=img_path;
+            std::replace( test_image_name.begin(), test_image_name.end(), '/', '_');
+            cout<<"SAVE:"<<result_image_folder+test_image_name+".jpg"<<endl;
+            imwrite(result_image_folder+test_image_name+".jpg", pyramid.getImageWithObjects());
+        }
     }
-    input_file.close();
+    test_file.close();
     output_file.close();
 
     return 0;

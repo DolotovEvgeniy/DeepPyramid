@@ -11,13 +11,13 @@
 #include <vector>
 
 #if 1
-    #include <stdio.h>
-    #define TIMER_START(name) int64 t_##name = getTickCount()
-    #define TIMER_END(name) printf("TIMER_" #name ":\t%6.2fms\n", \
-                1000.f * ((getTickCount() - t_##name) / getTickFrequency()))
+#include <stdio.h>
+#define TIMER_START(name) int64 t_##name = getTickCount()
+#define TIMER_END(name) printf("TIMER_" #name ":\t%6.2fms\n", \
+    1000.f * ((getTickCount() - t_##name) / getTickFrequency()))
 #else
-    #define TIMER_START(name)
-    #define TIMER_END(name)
+#define TIMER_START(name)
+#define TIMER_END(name)
 #endif
 
 #define OBJECT 1
@@ -36,10 +36,36 @@ public:
         return confidence<object.confidence;
     }
 };
+enum DeepPyramidMode {DETECT, TRAIN, TEST};
+
+class DeepPyramidConfiguration
+{
+public:
+    DeepPyramidMode mode;
+
+    std::string model_file;
+    std::string trained_net_file;
+
+    int numLevels;
+
+    cv::Scalar objectRectangleColor;
+
+    std::string svm_trained_file;
+    cv::Size filterSize;
+
+    DeepPyramidConfiguration(){};
+    DeepPyramidConfiguration(std::string deep_peramid_config, DeepPyramidMode mode);
+};
 
 class DeepPyramid
 {
 public:
+    int getNorm5ChannelsCount()
+    {
+        return norm5[0].size();
+    }
+
+    DeepPyramidConfiguration config;
     void addRootFilter(cv::Size filterSize, CvSVM* classifier);
     void setImg(cv::Mat img);
     std::vector<ObjectBox> detect(cv::Mat img);
@@ -61,7 +87,7 @@ public:
     cv::Mat getFeatureVector(cv::Rect rect, cv::Size size);
 
     std::string to_string(int i);
-    DeepPyramid(std::string detector_config);
+    DeepPyramid(std::string detector_config, DeepPyramidMode mode);
 private:
     cv::Mat originalImg;
     cv::Mat originalImgWithObjects;
@@ -75,8 +101,6 @@ private:
     std::vector<CvSVM*> rootFilterSVM;
     std::vector<ObjectBox> allObjects;
     std::vector<ObjectBox> detectedObjects;
-
-    cv::Scalar detectedObjectColor;
 
     void drawObjects();
     caffe::shared_ptr<caffe::Net<float> > net_;

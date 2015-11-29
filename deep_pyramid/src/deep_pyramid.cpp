@@ -127,20 +127,6 @@ Rect DeepPyramid::boundingBoxAtLevel(int i, Rect originalRect)
     return originalRect;
 }
 
-DeepPyramid:: DeepPyramid(int num_levels, const string& model_file,
-                          const string& trained_file) {
-    this->num_levels=num_levels;
-    net_.reset(new Net<float>(model_file, TEST));
-    net_->CopyTrainedLayersFrom(trained_file);
-    Blob<float>* input_layer = net_->input_blobs()[0];
-    num_channels = input_layer->channels();
-    assert(input_layer->width()==input_layer->height());
-    sideNetInputSquare=input_layer->width();
-    detectedObjectColor=Scalar(0,255,0);
-    centerConformity=16;
-    boxSideConformity=81;
-}
-
 void DeepPyramid::createMax5PyramidTest()
 {
     createMax5Pyramid();
@@ -421,14 +407,12 @@ void DeepPyramid::rootFilterAtLevel(int rootFilterIndx, int levelIndx, int strid
         {
 
             Point p(stride*w,stride*h);
-            TIMER_START(FEATURE);
             cv::Mat feature(1,filterSize.height*filterSize.width*norm5[levelIndx].size(),CV_32FC1);
             getFeatureVector(levelIndx,p,filterSize, feature);
-            TIMER_END(FEATURE);
+
             int predict;
-            TIMER_START(PREDICT);
             predict=filterSVM->predict(feature);
-            TIMER_END(PREDICT);
+
             if(predict==OBJECT)
             {
                 ObjectBox object;
@@ -505,7 +489,7 @@ void DeepPyramid::drawObjects()
     originalImg.copyTo(originalImgWithObjects);
     for(unsigned int i=0;i<detectedObjects.size();i++)
     {
-        rectangle(originalImgWithObjects, detectedObjects[i].originalImageBox, detectedObjectColor);
+        rectangle(originalImgWithObjects, detectedObjects[i].originalImageBox, config.objectRectangleColor);
     }
 }
 
@@ -595,41 +579,60 @@ Mat DeepPyramid::getNorm5(int level, int channel)
 }
 void DeepPyramid::clearFilter()
 {
+    for(unsigned int i=0;i<rootFilterSVM.size();i++)
+    {
+        delete rootFilterSVM[i];
+    }
     rootFilterSize.clear();
     rootFilterSVM.clear();
 }
 
-DeepPyramid::DeepPyramid(std::string detector_config)
+DeepPyramid::DeepPyramid(std::string detector_config, DeepPyramidMode mode) : config(detector_config, mode)
 {
-    FileStorage config(detector_config, FileStorage::READ);
-
 #ifdef CPU_ONLY
     Caffe::set_mode(Caffe::CPU);
 #else
     Caffe::set_mode(Caffe::GPU);
 #endif
 
-    string model_file;
-    config["NeuralNetwork-configuration"]>>model_file;
-    string trained_net_file;
-    config["NeuralNetwork-trained-model"]>>trained_net_file;
-    string svm_trained_file;
-    config["SVM"]>>svm_trained_file;
-    Size filterSize;
-    config["Filter-size"]>>filterSize;
-
-    this->num_levels=7;
-    net_.reset(new Net<float>(model_file, TEST));
-    net_->CopyTrainedLayersFrom(trained_net_file);
+    net_.reset(new Net<float>(config.model_file, caffe::TEST));
+    net_->CopyTrainedLayersFrom(config.trained_net_file);
     Blob<float>* input_layer = net_->input_blobs()[0];
     num_channels = input_layer->channels();
     assert(input_layer->width()==input_layer->height());
     sideNetInputSquare=input_layer->width();
-    detectedObjectColor=Scalar(0,255,0);
+
+    num_levels=config.numLevels;
+
     centerConformity=16;
     boxSideConformity=81;
 
-    CvSVM* classifier=new CvSVM();
-    classifier->load(svm_trained_file.c_str());
-    addRootFilter(filterSize,classifier);
+    if(mode==DeepPyramidMode::DETECT || mode==DeepPyramidMode::TEST)
+    {
+        CvSVM* classifier=new CvSVM();
+        classifier->load(config.svm_trained_file.c_str());
+        addRootFilter(config.filterSize,classifier);
+    }
+}
+
+
+DeepPyramidConfiguration::DeepPyramidConfiguration(string deep_pyramid_config, DeepPyramidMode _mode)
+{
+    mode=_mode;
+
+    FileStorage config(deep_pyramid_config, FileStorage::READ);
+
+    config["NeuralNetwork-configuration"]>>model_file;
+    config["NeuralNetwork-trained-model"]>>trained_net_file;
+    config["NumberOfLevel"]>>numLevels;
+
+    if(mode==DeepPyramidMode::DETECT || mode==DeepPyramidMode::TEST)
+    {
+        config["ObjectColor"]>>objectRectangleColor;
+
+        config["SVM"]>>svm_trained_file;
+        config["Filter-size"]>>filterSize;
+    }
+
+    config.release();
 }

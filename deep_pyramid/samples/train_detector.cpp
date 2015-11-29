@@ -59,53 +59,64 @@ Point centerOfRect(Rect rect)
 {
     return Point(rect.x+rect.width/2.0, rect.y+rect.height/2.0);
 }
-struct TrainConfiguration
-{
-    string net_model_file;
-    string net_train_file;
-    Size filterSize;
-    int firstTrainSVMsample;
-    int retrainSVMiter;
-    int numPyramidLevel;
-    int trainImageFile;
-    int boundingBoxRegressorTrainData;
-    string SVM_file;
-    string boundBoxRegressor_file;
-    TrainConfiguration(string configFile)
-    {
 
+void readImg(string img_path, istream& file, Mat& img)
+{
+    cout<<img_path<<endl;
+    img=imread(img_path+".jpg");
+}
+
+int readObjectCount(istream& file)
+{
+    int n;
+    file>>n;
+    return n;
+}
+
+void readObjectRect(istream& file, int n, vector<Rect>& objects)
+{
+    for(int i=0;i<n;i++)
+    {
+        Rect  rect=readEllipseToRect(file);
+        objects.push_back(rect);
     }
-};
+}
 
 int main(int argc, char *argv[])
 {
-    string alexnet_model_file=argv[1];
-    string alexnet_trained_file=argv[2];
 
-    DeepPyramid pyramid(7,alexnet_model_file, alexnet_trained_file);
+    string config_file=argv[1];
+    DeepPyramid pyramid(config_file, DeepPyramidMode::TRAIN);
 
-    Size filterSize(atoi(argv[3]),atoi(argv[4]));
+    FileStorage config(config_file, FileStorage::READ);
+    Size filterSize;
+    config["TrainFilter-size"]>>filterSize;
 
-    ifstream file(argv[5]);
-    string path;
-    cout<<"train first SVM"<<endl;
+    string train_file_path;
+    config["FileWithTrainImage"]>>train_file_path;
+
+    string train_image_folder;
+    config["TrainImageFolder"]>>train_image_folder;
+
+    ifstream train_file(train_file_path);
+    string img_path;
+
+    cout<<"train start SVM"<<endl;
     Mat features;
     Mat label;
     int iter=0;
-    while(file>>path && iter<30)
+    int maxStartTrainIter;
+    config["StartSVMTrainIter"]>>maxStartTrainIter;
+    while(train_file>>img_path && iter<maxStartTrainIter)
     {
         iter++;
-        cout<<path<<endl;
         Mat image;
-        image=imread(path+".jpg");
-        int n;
-        file>>n;
+        readImg(train_image_folder+img_path, train_file, image);
+
+        int n=readObjectCount(train_file);
+
         vector<Rect> objects;
-        for(int i=0;i<n;i++)
-        {
-            Rect  rect=readEllipseToRect(file);
-            objects.push_back(rect);
-        }
+        readObjectRect(train_file, n, objects);
 
         pyramid.calculateToNorm5(image);
 
@@ -131,7 +142,7 @@ int main(int argc, char *argv[])
                 for(int h=0;h<stepHeight;h+=stride)
                 {
                     Point p(stride*w,stride*h);
-                    Rect sample(p,Size(7,11));
+                    Rect sample(p,filterSize);
 
                     bool addNeg=true;
                     for(int objectNum=0;objectNum<n;objectNum++)
@@ -144,10 +155,10 @@ int main(int argc, char *argv[])
                     }
                     if(addNeg)
                     {
-                        Mat feature(1,7*11*256,CV_32FC1);
-                                pyramid.getFeatureVector(level,p,Size(7,11), feature);
+                        Mat feature(1,filterSize.width*filterSize.height*pyramid.getNorm5ChannelsCount(),CV_32FC1);
+                        pyramid.getFeatureVector(level,p, filterSize, feature);
                         features.push_back(feature);
-                        label.push_back(-1);
+                        label.push_back(NOT_OBJECT);
                     }
 
                 }
@@ -156,36 +167,54 @@ int main(int argc, char *argv[])
         for(int i=0;i<n;i++)
         {
             features.push_back(pyramid.getFeatureVector(objects[i],filterSize));
-            label.push_back(1);
+            label.push_back(OBJECT);
         }
     }
-    file.close();
 
     CvSVMParams params;
     params.svm_type    = CvSVM::C_SVC;
-    params.kernel_type = CvSVM::POLY;
-    params.degree=3;
+
+    string SVMType;
+    config["SVMKernelType"]>>SVMType;
+    if(SVMType=="LINEAR")
+    {
+        params.kernel_type = CvSVM::LINEAR;
+    }
+    else
+    {
+        if(SVMType=="POLY")
+        {
+            params.kernel_type = CvSVM::POLY;
+            config["SVMDegree"]>>params.degree;
+        }
+    }
+
     params.term_crit   = cvTermCriteria(CV_TERMCRIT_ITER, 500, 1e-6);
     CvSVM svm;
+
     svm.train(features,label, Mat(),Mat(),params);
+
     pyramid.addRootFilter(filterSize, &svm);
-    int retrainCount=atoi(argv[6]);
-    for(int retrainIter=0; retrainIter<retrainCount; retrainIter++)
+
+    int countRetrainIter;
+    config["HardNegTrainIter"]>>countRetrainIter;
+    int retrainIter=0;
+    int maxSampleCount;
+    config["SampleMaxCount"]>>maxSampleCount;
+    while(retrainIter<countRetrainIter && features.cols<maxSampleCount)
     {
-        file.open(argv[5]);
-        while(file>>path)
+        train_file.clear();
+        train_file.seekg(0, ios_base::beg);
+
+        while(train_file>>img_path)
         {
-            cout<<path<<endl;
             Mat image;
-            image=imread(path+".jpg");
-            int n;
-            file>>n;
+            readImg(train_image_folder+img_path, train_file, image);
+
+            int n=readObjectCount(train_file);
+
             vector<Rect> objects;
-            for(int i=0;i<n;i++)
-            {
-                Rect  rect=readEllipseToRect(file);
-                objects.push_back(rect);
-            }
+            readObjectRect(train_file, n, objects);
 
             vector<ObjectBox> detectedObject;
             detectedObject=pyramid.detect(image);
@@ -204,112 +233,124 @@ int main(int argc, char *argv[])
                 if(addFalsePositive)
                 {
                     features.push_back(pyramid.getFeatureVector(detectedObject[i].originalImageBox,filterSize));
-                    label.push_back(-1);
+                    label.push_back(NOT_OBJECT);
                 }
             }
+
+            for(int i=0;i<n;i++)
+            {
+                features.push_back(pyramid.getFeatureVector(objects[i],filterSize));
+                label.push_back(OBJECT);
+            }
         }
-        file.close();
-        svm.train(features,label, Mat(),Mat(),params);
+
         pyramid.clearFilter();
+
+        svm.train(features,label, Mat(),Mat(),params);
         pyramid.addRootFilter(filterSize,&svm);
+        retrainIter++;
     }
-    svm.save("svm.xml");
+    string svm_name;
+    config["SVMSaveName"]>>svm_name;
+    svm.save((svm_name+".xml").c_str());
     features.release();
     label.release();
 
-    vector< pair<Rect, Rect> > boundingBoxRegressorTrainData;
-    file.open(argv[5]);
-    while(file>>path && boundingBoxRegressorTrainData.size() < 100)
-    {
-        cout<<path<<endl;
-        Mat image;
-        image=imread(path+".jpg");
-        int n;
-        file>>n;
-        vector<Rect> objects;
-        for(int i=0;i<n;i++)
-        {
-            Rect  rect=readEllipseToRect(file);
-            objects.push_back(rect);
-        }
+//    vector< pair<Rect, Rect> > boundingBoxRegressorTrainData;
+//    train_file.clear();
+//    train_file.seekg(0, ios_base::beg);
+//    while(train_file>>img_path && boundingBoxRegressorTrainData.size() < 100)
+//    {
+//        cout<<img_path<<endl;
+//        Mat image;
+//        image=imread(train_image_folder+img_path+".jpg");
+//        int n;
+//        train_file>>n;
+//        vector<Rect> objects;
+//        for(int i=0;i<n;i++)
+//        {
+//            Rect  rect=readEllipseToRect(train_file);
+//            objects.push_back(rect);
+//        }
 
-        vector<ObjectBox> detectedObject;
-        detectedObject=pyramid.detect(image);
+//        vector<ObjectBox> detectedObject;
+//        detectedObject=pyramid.detect(image);
 
-        for(unsigned int i=0;i<detectedObject.size();i++)
-            for(unsigned int j=0;j<objects.size();j++)
-            {
-                if(IOU(objects[j],detectedObject[i].originalImageBox)>0.6)
-                {
-                    pair< Rect, Rect> group;
-                    group.first=objects[j];
-                    group.second=detectedObject[i].originalImageBox;
-                }
-            }
-    }
+//        for(unsigned int i=0;i<detectedObject.size();i++)
+//            for(unsigned int j=0;j<objects.size();j++)
+//            {
+//                if(IOU(objects[j],detectedObject[i].originalImageBox)>0.6)
+//                {
+//                    pair< Rect, Rect> group;
+//                    group.first=objects[j];
+//                    group.second=detectedObject[i].originalImageBox;
+//                }
+//            }
+//    }
 
-    Mat Tx;
-    Mat Ty;
-    Mat Tw;
-    Mat Th;
-    Mat X;
+//    Mat Tx;
+//    Mat Ty;
+//    Mat Tw;
+//    Mat Th;
+//    Mat X;
 
-    for(unsigned int i=0;i<boundingBoxRegressorTrainData.size();i++)
-    {
-        Rect G=boundingBoxRegressorTrainData[i].first;
-        Rect P=boundingBoxRegressorTrainData[i].second;
+//    for(unsigned int i=0;i<boundingBoxRegressorTrainData.size();i++)
+//    {
+//        Rect G=boundingBoxRegressorTrainData[i].first;
+//        Rect P=boundingBoxRegressorTrainData[i].second;
 
-        float tx=(centerOfRect(G).x-centerOfRect(P).x)/(double)P.width;
-        float ty=(centerOfRect(G).y-centerOfRect(P).y)/(double)P.height;
-        float tw=log(G.width/(double)P.width);
-        float th=log(G.height/(double)P.height);
-        Tx.push_back(tx);
-        Ty.push_back(ty);
-        Tw.push_back(tw);
-        Th.push_back(th);
-        Mat boundBoxFeature=pyramid.getFeatureVector(P,filterSize);
-        X.push_back(boundBoxFeature);
-    }
+//        float tx=(centerOfRect(G).x-centerOfRect(P).x)/(double)P.width;
+//        float ty=(centerOfRect(G).y-centerOfRect(P).y)/(double)P.height;
+//        float tw=log(G.width/(double)P.width);
+//        float th=log(G.height/(double)P.height);
+//        Tx.push_back(tx);
+//        Ty.push_back(ty);
+//        Tw.push_back(tw);
+//        Th.push_back(th);
+//        Mat boundBoxFeature=pyramid.getFeatureVector(P,filterSize);
+//        X.push_back(boundBoxFeature);
+//    }
 
-    Mat XT;
+//    Mat XT;
 
-    transpose(X, XT);
-    Mat XTX;
-    XTX=XT*X;
-    X.release();
-    float A=100;
-    Mat I=diagMatrix(XTX.cols, A);
-    XTX+=I;
-    I.release();
-    Mat revXTX;
-    invert(XTX,revXTX);
+//    transpose(X, XT);
+//    Mat XTX;
+//    XTX=XT*X;
+//    X.release();
+//    float A=100;
+//    Mat I=diagMatrix(XTX.cols, A);
+//    XTX+=I;
+//    I.release();
+//    Mat revXTX;
+//    invert(XTX,revXTX);
 
-    XTX.release();
+//    XTX.release();
 
-    Mat Wx,Wy,Ww,Wh;
+//    Mat Wx,Wy,Ww,Wh;
 
-    Mat XTTx;
-    XTTx=XT*Tx;
+//    Mat XTTx;
+//    XTTx=XT*Tx;
 
-    Wx=revXTX*XTTx;
+//    Wx=revXTX*XTTx;
 
-    Mat XTTy;
+//    Mat XTTy;
 
-    XTTy=XT*Ty;
+//    XTTy=XT*Ty;
 
-    Wy=revXTX*XTTy;
+//    Wy=revXTX*XTTy;
 
-    Mat XTTw;
+//    Mat XTTw;
 
-    XTTw=XT*Tw;
+//    XTTw=XT*Tw;
 
-    Ww=revXTX*XTTw;
+//    Ww=revXTX*XTTw;
 
-    Mat XTTh;
+//    Mat XTTh;
 
-    XTTh=XT*Th;
+//    XTTh=XT*Th;
 
-    Wh=revXTX*XTTh;
-
+//    Wh=revXTX*XTTh;
+train_file.close();
+config.release();
     return 0;
 }

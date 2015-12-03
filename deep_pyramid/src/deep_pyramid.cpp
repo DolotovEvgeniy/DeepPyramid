@@ -363,10 +363,13 @@ void DeepPyramid::getFeatureVector(int levelIndx, Point position, Size size, Mat
 
 Mat DeepPyramid::getFeatureVector(Rect rect, Size size)
 {
+    cout<<"rect"<<rect<<endl;
     int bestLevel=chooseLevel(size, rect);
-
+    cout<<"level:"<<bestLevel<<endl;
     Rect imagePyramidBounigBox=boundingBoxAtLevel(bestLevel, rect);
+     cout<<"PyramidBox:"<<imagePyramidBounigBox<<endl;
     Rect objectRect=getNorm5RectByOriginal(imagePyramidBounigBox);
+    cout<<"objectRect:"<<objectRect<<endl;
     vector<Mat> norm5Resized;
     for(int j=0;j<256;j++)
     {
@@ -376,7 +379,7 @@ Mat DeepPyramid::getFeatureVector(Rect rect, Size size)
         norm5Resized.push_back(m);
     }
 
-    cv::Mat feature(1, size.height*size.width*norm5.size(),CV_32FC1);
+    cv::Mat feature(1, size.height*size.width*norm5[0].size(),CV_32FC1);
     for(int w=0;w<size.width;w++)
     {
         for(int h=0;h<size.height;h++)
@@ -398,6 +401,7 @@ void DeepPyramid::rootFilterAtLevel(int rootFilterIndx, int levelIndx, int strid
     CvSVM* filterSVM=rootFilterSVM[rootFilterIndx];
     int stepWidth, stepHeight;
     cout<<"here!"<<endl;
+    stride=config.stride;
     stepWidth=((norm5[levelIndx][0].cols/pow(2,(num_levels-1-levelIndx)/2.0)-filterSize.width)/stride)+1;
     stepHeight=((norm5[levelIndx][0].rows/pow(2,(num_levels-1-levelIndx)/2.0)-filterSize.height)/stride)+1;
     int detectedObjectCount=0;
@@ -482,6 +486,13 @@ double IOU(Rect r1,Rect r2)
 void DeepPyramid::groupOriginalRectangle()
 {
     detectedObjects=nms_avg(allObjects,0.2,0.7);
+    for(int i=0; i<detectedObjects.size(); i++)
+{
+detectedObjects[i].originalImageBox.width*=0.7;
+detectedObjects[i].originalImageBox.height*=0.7;
+
+}
+
 }
 
 void DeepPyramid::drawObjects()
@@ -587,6 +598,17 @@ void DeepPyramid::clearFilter()
     rootFilterSVM.clear();
 }
 
+Mat DeepPyramid::drawAll()
+{
+    Mat m;
+    originalImg.copyTo(m);
+    for(int i=0;i<allObjects.size();i++)
+    {
+        rectangle(m, allObjects[i].originalImageBox,Scalar(0,255,0));
+    }
+    return m;
+}
+
 DeepPyramid::DeepPyramid(std::string detector_config, DeepPyramidMode mode) : config(detector_config, mode)
 {
 #ifdef CPU_ONLY
@@ -625,6 +647,8 @@ DeepPyramidConfiguration::DeepPyramidConfiguration(string deep_pyramid_config, D
     config["NeuralNetwork-configuration"]>>model_file;
     config["NeuralNetwork-trained-model"]>>trained_net_file;
     config["NumberOfLevel"]>>numLevels;
+
+    config["Stride"]>>stride;
 
     if(mode==DeepPyramidMode::DETECT || mode==DeepPyramidMode::TEST)
     {

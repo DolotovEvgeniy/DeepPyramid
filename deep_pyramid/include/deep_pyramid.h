@@ -53,6 +53,7 @@ public:
     std::string svm_trained_file;
     cv::Size filterSize;
 
+    int stride;
     DeepPyramidConfiguration(){};
     DeepPyramidConfiguration(std::string deep_peramid_config, DeepPyramidMode mode);
 };
@@ -85,10 +86,10 @@ public:
     cv::Mat getNorm5(int level, int channel);
     void clearFilter();
     cv::Mat getFeatureVector(cv::Rect rect, cv::Size size);
-
+    cv::Mat drawAll();
     std::string to_string(int i);
     DeepPyramid(std::string detector_config, DeepPyramidMode mode);
-private:
+public:
     cv::Mat originalImg;
     cv::Mat originalImgWithObjects;
     int num_levels;
@@ -146,6 +147,7 @@ private:
     int centerConformity;
     int boxSideConformity;
     void clear();
+
 
 };
 

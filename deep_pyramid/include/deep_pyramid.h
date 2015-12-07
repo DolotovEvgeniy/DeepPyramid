@@ -30,7 +30,6 @@ public:
     double confidence;
     int level;
     cv::Rect norm5Box;
-    cv::Rect pyramidImageBox;
     cv::Rect originalImageBox;
     bool operator< (ObjectBox object)
     {
@@ -63,7 +62,6 @@ class DeepPyramid
 {
 public:
     int getNorm5ChannelsCount();
-    cv::Rect getNorm5RectAtLevelByOriginal(cv::Rect originalRect, int level);
 
     DeepPyramidConfiguration config;
     void addRootFilter(cv::Size filterSize, CvSVM* classifier);
@@ -78,7 +76,8 @@ public:
     cv::Size originalImageSize();
     int norm5SideLength();
     //Rectangle transform
-    cv::Rect getRectByNorm5Rect(cv::Rect rect);
+    cv::Rect getNorm5RectAtLevelByOriginal(cv::Rect originalRect, int level);
+    cv::Rect getOriginalRectByNorm5AtLevel(cv::Rect norm5Rect, int level);
 
     int chooseLevel(cv::Size filterSize, cv::Rect boundBox);
     cv::Mat getNorm5(int level, int channel);
@@ -129,7 +128,6 @@ public:
     void rootFilterConvolution();
 
     //Rectangle
-    void calculateImagePyramidRectangle();
     void calculateOriginalRectangle();
     void groupOriginalRectangle();
 

@@ -10,6 +10,15 @@ using namespace cv;
 using namespace std;
 using namespace caffe;
 
+Rect scaleRect(Rect r, double scale)
+{
+    r.x*=scale;
+    r.y*=scale;
+    r.width*=scale;
+    r.height*=scale;
+    return r;
+}
+
 Rect DeepPyramid::getRectByNorm5Pixel_ARTICLE(Point p)
 {
     Point center=p*centerConformity;
@@ -41,21 +50,6 @@ Rect DeepPyramid::getRectByNorm5Rect_ARTICLE(Rect r)
     Point RectDR=Point(r2.x+r2.width, r2.y+r2.height);
 
     return Rect(RectHL, RectDR);
-}
-
-Rect DeepPyramid::getRectByNorm5Rect(Rect r)
-{
-    Blob<float>* input_layer = net_->input_blobs()[0];
-    Blob<float>* output_layer = net_->output_blobs()[0];
-    double scale=input_layer->width()/(double)output_layer->width();
-
-    Rect rect;
-    rect.x=r.x*scale;
-    rect.y=r.y*scale;
-    rect.width=r.width*scale;
-    rect.height=r.height*scale;
-
-    return rect;
 }
 
 Rect DeepPyramid::getNorm5RectByOriginal_ARTICLE(Rect originalRect)
@@ -92,24 +86,36 @@ Rect DeepPyramid::getNorm5RectAtLevelByOriginal(Rect originalRect, int level)
 {
     double longSide=std::max(originalImg.rows, originalImg.cols);
     double scalePyramid = (sideNetInputSquare/pow(2, (num_levels-1-level)/2.0))/longSide;
+
     Rect boundBoxInPyramid;
-    boundBoxInPyramid.x=originalRect.x*scalePyramid;
-    boundBoxInPyramid.y=originalRect.y*scalePyramid;
-    boundBoxInPyramid.height=originalRect.height*scalePyramid;
-    boundBoxInPyramid.width=originalRect.width*scalePyramid;
+    boundBoxInPyramid=scaleRect(originalRect,scalePyramid);
 
     Blob<float>* input_layer = net_->input_blobs()[0];
     Blob<float>* output_layer = net_->output_blobs()[0];
     double scaleNorm5=input_layer->width()/(double)output_layer->width();
 
     Rect boundBoxInNorm5;
-    boundBoxInPyramid.x=originalRect.x/scaleNorm5;
-    boundBoxInPyramid.y=originalRect.y/scaleNorm5;
-    boundBoxInPyramid.width=originalRect.width/scaleNorm5;
-    boundBoxInPyramid.height=originalRect.height/scaleNorm5;
+    boundBoxInNorm5=scaleRect(boundBoxInPyramid, scaleNorm5);
 
     return boundBoxInNorm5;
 }
+
+ Rect DeepPyramid::getOriginalRectByNorm5AtLevel(Rect norm5Rect, int level)
+ {
+     Blob<float>* input_layer = net_->input_blobs()[0];
+     Blob<float>* output_layer = net_->output_blobs()[0];
+     double scaleNorm5=input_layer->width()/(double)output_layer->width();
+
+     Rect boundBoxInPyramid;
+     boundBoxInPyramid=scaleRect(norm5Rect,scaleNorm5);
+
+     double longSide=std::max(originalImg.rows, originalImg.cols);
+     double scalePyramid = longSide/(sideNetInputSquare/pow(2, (num_levels-1-level)/2.0));
+     Rect boundBoxOriginal;
+     boundBoxOriginal=scaleRect(boundBoxInPyramid, scalePyramid);
+
+     return boundBoxInPyramid;
+ }
 
 void DeepPyramid::createMax5PyramidTest()
 {
@@ -429,17 +435,9 @@ void DeepPyramid::rootFilterConvolution()
 
 //Rectangle
 //
-void DeepPyramid::calculateImagePyramidRectangle()
-{
-    for(unsigned int i=0;i<detectedObjects.size();i++)
-    {
-        detectedObjects[i].pyramidImageBox=getRectByNorm5Rect(detectedObjects[i].norm5Box);
-    }
-}
 
 void DeepPyramid::calculateOriginalRectangle()
 {
-    calculateImagePyramidRectangle();
     float* scales=new float[num_levels];
     double longSide=(originalImg.cols>originalImg.rows) ? originalImg.cols : originalImg.rows;
     for(int i=0;i<num_levels;i++)

@@ -11,18 +11,16 @@
 #include <vector>
 #include <utility>
 
-#if 1
+
 #include <stdio.h>
 #define TIMER_START(name) int64 t_##name = getTickCount()
 #define TIMER_END(name) printf("TIMER_" #name ":\t%6.2fms\n", \
     1000.f * ((getTickCount() - t_##name) / getTickFrequency()))
-#else
-#define TIMER_START(name)
-#define TIMER_END(name)
-#endif
 
 #define OBJECT 1
 #define NOT_OBJECT -1
+
+double IOU(cv::Rect r1,cv::Rect r2);
 
 class ObjectBox
 {
@@ -73,7 +71,7 @@ public:
     void calculateToNorm5(cv::Mat image);
     int getNumLevel();
     void getFeatureVector(int levelIndx, cv::Point position, cv::Size size, cv::Mat& feature);
-    cv::Size originalImageSize();
+
     int norm5SideLength();
     //Rectangle transform
     cv::Rect getNorm5RectAtLevelByOriginal(cv::Rect originalRect, int level);
@@ -90,8 +88,6 @@ public:
     std::vector<cv::Mat> imagePyramid;
     std::vector< std::vector<cv::Mat> > max5;
     std::vector< std::vector<cv::Mat> > norm5;
-    std::vector<float> meanValue;
-    std::vector<float> deviationValue;
     std::vector<std::pair<cv::Size, CvSVM*> > rootFilter;
 
     std::vector<ObjectBox> detectedObjects;
@@ -100,8 +96,6 @@ public:
     int sideNetInputSquare;
     int num_channels;
 
-    void showImagePyramid();
-    void showNorm5Pyramid();
     //Image Pyramid
     cv::Size calculateLevelPyramidImageSize(int i);
     cv::Mat createLevelPyramidImage(int i);
@@ -140,7 +134,4 @@ public:
 
 
 };
-
-
-double IOU(cv::Rect r1,cv::Rect r2);
 #endif // DEEP_PYRAMID_H

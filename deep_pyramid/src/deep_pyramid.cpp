@@ -117,30 +117,9 @@ Rect DeepPyramid::getNorm5RectAtLevelByOriginal(Rect originalRect, int level)
      return boundBoxInPyramid;
  }
 
-void DeepPyramid::showNorm5Pyramid()
-{
-    for(unsigned int i=0;i<norm5.size();i++)
-        for(unsigned int j=0;j<norm5[i].size();j++)
-        {
-            imshow("norm5| "+to_string(i)+" | "+to_string(j), norm5[i][j]);
-            waitKey(0);
-            destroyWindow("norm5| "+to_string(i)+" | "+to_string(j));
-        }
-}
-
 void DeepPyramid::setImg(Mat img)
 {
     img.copyTo(originalImg);
-}
-
-void DeepPyramid::showImagePyramid()
-{
-    for(int i=0;i<num_levels;i++)
-    {
-        imshow("Image level: "+to_string(i+1),imagePyramid[i]);
-        waitKey(0);
-        destroyWindow("Image level: "+to_string(i+1));
-    }
 }
 
 //Image Pyramid
@@ -476,8 +455,6 @@ void DeepPyramid::clear()
     max5.clear();
     norm5.clear();
     detectedObjects.clear();
-    meanValue.clear();
-    deviationValue.clear();
     detectedObjects.clear();
 }
 
@@ -508,10 +485,6 @@ void DeepPyramid::calculateToNorm5(Mat image)
 int DeepPyramid::getNumLevel()
 {
     return num_levels;
-}
-cv::Size DeepPyramid::originalImageSize()
-{
-    return Size(originalImg.cols,originalImg.rows);
 }
 
 int DeepPyramid::norm5SideLength()

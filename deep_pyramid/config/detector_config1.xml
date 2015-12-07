@@ -18,9 +18,12 @@ bvlc_alexnet.caffemodel
 
 <!--Path to trained SVM(.xml)-->
 <SVM>
-svm.xml
+linear_svm.xml
 </SVM>
 
+<Stride>
+1
+</Stride>
 <!-- Size of sliding window (width x height)-->
 <Filter-size>
   7 11

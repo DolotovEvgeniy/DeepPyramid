@@ -9,6 +9,7 @@
 #include <caffe/caffe.hpp>
 #include <caffe/common.hpp>
 #include <vector>
+#include <utility>
 
 #if 1
 #include <stdio.h>
@@ -53,6 +54,7 @@ public:
     std::string svm_trained_file;
     cv::Size filterSize;
 
+    int stride;
     DeepPyramidConfiguration(){};
     DeepPyramidConfiguration(std::string deep_peramid_config, DeepPyramidMode mode);
 };
@@ -60,10 +62,8 @@ public:
 class DeepPyramid
 {
 public:
-    int getNorm5ChannelsCount()
-    {
-        return norm5[0].size();
-    }
+    int getNorm5ChannelsCount();
+    cv::Rect getNorm5RectAtLevelByOriginal(cv::Rect originalRect, int level);
 
     DeepPyramidConfiguration config;
     void addRootFilter(cv::Size filterSize, CvSVM* classifier);
@@ -78,31 +78,25 @@ public:
     cv::Size originalImageSize();
     int norm5SideLength();
     //Rectangle transform
-    cv::Rect boundingBoxAtLevel(int i, cv::Rect originalRect);
     cv::Rect getRectByNorm5Rect(cv::Rect rect);
-    cv::Rect getNorm5RectByOriginal(cv::Rect originalRect);
+
     int chooseLevel(cv::Size filterSize, cv::Rect boundBox);
     cv::Mat getNorm5(int level, int channel);
     void clearFilter();
     cv::Mat getFeatureVector(cv::Rect rect, cv::Size size);
-
-    std::string to_string(int i);
     DeepPyramid(std::string detector_config, DeepPyramidMode mode);
-private:
+public:
     cv::Mat originalImg;
-    cv::Mat originalImgWithObjects;
     int num_levels;
     std::vector<cv::Mat> imagePyramid;
     std::vector< std::vector<cv::Mat> > max5;
     std::vector< std::vector<cv::Mat> > norm5;
     std::vector<float> meanValue;
     std::vector<float> deviationValue;
-    std::vector<cv::Size> rootFilterSize;
-    std::vector<CvSVM*> rootFilterSVM;
-    std::vector<ObjectBox> allObjects;
+    std::vector<std::pair<cv::Size, CvSVM*> > rootFilter;
+
     std::vector<ObjectBox> detectedObjects;
 
-    void drawObjects();
     caffe::shared_ptr<caffe::Net<float> > net_;
     int sideNetInputSquare;
     int num_channels;
@@ -146,6 +140,7 @@ private:
     int centerConformity;
     int boxSideConformity;
     void clear();
+
 
 };
 

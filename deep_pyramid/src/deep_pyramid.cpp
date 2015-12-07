@@ -85,7 +85,7 @@ Rect DeepPyramid::getNorm5RectByOriginal_ARTICLE(Rect originalRect)
 Rect DeepPyramid::getNorm5RectAtLevelByOriginal(Rect originalRect, int level)
 {
     double longSide=std::max(originalImg.rows, originalImg.cols);
-    double scalePyramid = (sideNetInputSquare/pow(2, (num_levels-1-level)/2.0))/longSide;
+    double scalePyramid = sideNetInputSquare/(pow(2, (num_levels-1-level)/2.0)*longSide);
 
     Rect boundBoxInPyramid;
     boundBoxInPyramid=scaleRect(originalRect,scalePyramid);
@@ -110,17 +110,13 @@ Rect DeepPyramid::getNorm5RectAtLevelByOriginal(Rect originalRect, int level)
      boundBoxInPyramid=scaleRect(norm5Rect,scaleNorm5);
 
      double longSide=std::max(originalImg.rows, originalImg.cols);
-     double scalePyramid = longSide/(sideNetInputSquare/pow(2, (num_levels-1-level)/2.0));
+     double scalePyramid = (longSide*pow(2, (num_levels-1-level)/2.0))/sideNetInputSquare;
      Rect boundBoxOriginal;
      boundBoxOriginal=scaleRect(boundBoxInPyramid, scalePyramid);
 
      return boundBoxInPyramid;
  }
 
-void DeepPyramid::createMax5PyramidTest()
-{
-    createMax5Pyramid();
-}
 void DeepPyramid::showNorm5Pyramid()
 {
     for(unsigned int i=0;i<norm5.size();i++)
@@ -438,22 +434,10 @@ void DeepPyramid::rootFilterConvolution()
 
 void DeepPyramid::calculateOriginalRectangle()
 {
-    float* scales=new float[num_levels];
-    double longSide=(originalImg.cols>originalImg.rows) ? originalImg.cols : originalImg.rows;
-    for(int i=0;i<num_levels;i++)
-    {
-        scales[i]=longSide/(sideNetInputSquare/pow(2, (num_levels-1-i)/2.0));
-    }
     for(unsigned int i=0;i<detectedObjects.size();i++)
     {
-        Rect original;
-        Rect pyramid=detectedObjects[i].pyramidImageBox;
-        int level=detectedObjects[i].level;
-        original.x=pyramid.x*scales[level];
-        original.y=pyramid.y*scales[level];
-        original.width=pyramid.width*scales[level];
-        original.height=pyramid.height*scales[level];
-        detectedObjects[i].originalImageBox=original;
+        Rect originalRect=getOriginalRectByNorm5AtLevel(detectedObjects[i].norm5Box, detectedObjects[i].level);
+        detectedObjects[i].originalImageBox=originalRect;
     }
 }
 double IOU(Rect r1,Rect r2)

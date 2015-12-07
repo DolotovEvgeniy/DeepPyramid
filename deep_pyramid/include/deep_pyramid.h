@@ -101,7 +101,6 @@ public:
     int num_channels;
 
     void showImagePyramid();
-    void createMax5PyramidTest();
     void showNorm5Pyramid();
     //Image Pyramid
     cv::Size calculateLevelPyramidImageSize(int i);

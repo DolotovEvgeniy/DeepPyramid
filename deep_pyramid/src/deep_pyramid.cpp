@@ -350,7 +350,6 @@ Mat DeepPyramid::getFeatureVector(Rect rect, Size size)
     cout<<"rect"<<rect<<endl;
     int bestLevel=chooseLevel(size, rect);
     cout<<"level:"<<bestLevel<<endl;
-
     Rect objectRect=getNorm5RectAtLevelByOriginal(rect, bestLevel);
     cout<<"objectRect:"<<objectRect<<endl;
     vector<Mat> norm5Resized;
@@ -469,13 +468,6 @@ double IOU(Rect r1,Rect r2)
 void DeepPyramid::groupOriginalRectangle()
 {
     nms_avg(detectedObjects,0.2,0.7);
-    for(int i=0; i<detectedObjects.size(); i++)
-    {
-        detectedObjects[i].originalImageBox.width*=0.7;
-        detectedObjects[i].originalImageBox.height*=0.7;
-
-    }
-
 }
 
 vector<ObjectBox> DeepPyramid::detect(Mat img)

@@ -34,6 +34,9 @@ linear_svm.xml
   0. 255. 0. 0.
 </ObjectColor>
 
+<Stride>
+1
+</Stride>
 <!-- ONLY FOR TEST MODE -->
 
 <!-- File contained name of test image -->
@@ -66,12 +69,12 @@ res/
 
 <!-- File contained name of train image -->
 <FileWithTrainImage>
-FDDB-fold-01.txt
+/home/dolotov_e/FDDB/FDDB-folds/FDDB-fold-01-ellipseList.txt
 </FileWithTrainImage>
 
 <!-- Folder with test image -->
 <TrainImageFolder>
-/home/evgeniy/Desktop/
+/home/dolotov_e/FDDB/
 </TrainImageFolder>
 
 <!-- Size of sliding window (width x height)-->
@@ -80,15 +83,15 @@ FDDB-fold-01.txt
 </TrainFilter-size>
 
 <StartSVMTrainIter>
-10
+30
 </StartSVMTrainIter>
 
 <HardNegTrainIter>
-2
+0
 </HardNegTrainIter>
 
 <SampleMaxCount>
-30000
+60000
 </SampleMaxCount>
 
 <SVMKernelType>
@@ -101,7 +104,7 @@ POLY
 </SVMDegree>
 
 <SVMSaveName>
-svm
+linear_svm
 </SVMSaveName>
 
 </opencv_storage>

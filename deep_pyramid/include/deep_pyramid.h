@@ -59,32 +59,29 @@ public:
 class DeepPyramid
 {
 public:
+    DeepPyramid(std::string detector_config, DeepPyramidMode mode);
+    DeepPyramid(int num_levels, const std::string& model_file,
+                const std::string& trained_file);
+    int getLevelCount();
+    cv::Size norm5Size();
+    void cutFeatureFromImage(const cv::Mat& img, const std::vector<cv::Rect>& objectsRect,cv::Mat& features, cv::Mat& labels);
+private:
     int getNorm5ChannelsCount();
 
     DeepPyramidConfiguration config;
     void addRootFilter(cv::Size filterSize, CvSVM* classifier);
-    void setImg(cv::Mat img);
+    void setImg(const cv::Mat& img);
     std::vector<ObjectBox> detect(cv::Mat img);
-    DeepPyramid(int num_levels, const std::string& model_file,
-                const std::string& trained_file);
     cv::Mat getImageWithObjects();
-    void calculateToNorm5(cv::Mat image);
-    int getNumLevel();
     void getFeatureVector(int levelIndx, cv::Point position, cv::Size size, cv::Mat& feature);
 
-    int norm5SideLength();
-    //Rectangle transform
-    cv::Rect getNorm5RectAtLevelByOriginal(cv::Rect originalRect, int level);
-    cv::Rect getOriginalRectByNorm5AtLevel(cv::Rect norm5Rect, int level);
 
     int chooseLevel(cv::Size filterSize, cv::Rect boundBox);
     cv::Mat getNorm5(int level, int channel);
-    void clearFilter();
+
     cv::Mat getFeatureVector(cv::Rect rect, cv::Size size);
-    DeepPyramid(std::string detector_config, DeepPyramidMode mode);
-public:
     cv::Mat originalImg;
-    int num_levels;
+    unsigned int num_levels;
     std::vector<cv::Mat> imagePyramid;
     std::vector< std::vector<cv::Mat> > max5;
     std::vector< std::vector<cv::Mat> > norm5;
@@ -93,34 +90,37 @@ public:
     std::vector<ObjectBox> detectedObjects;
 
     caffe::shared_ptr<caffe::Net<float> > net_;
-    int sideNetInputSquare;
+    int inputDimension;
     int num_channels;
 
     //Image Pyramid
-    cv::Size calculateLevelPyramidImageSize(int i);
-    cv::Mat createLevelPyramidImage(int i);
+    cv::Size calculateLevelPyramidImageSize(int level);
+    cv::Mat createLevelPyramidImage(int level);
     void createImagePyramid();
 
     //NeuralNet
-    cv::Mat convertToFloat(cv::Mat img);
-    void fillNeuralNetInput(int i);
-    void calculateNet();
-    void calculateNetAtLevel(int i);
+    cv::Mat convertToFloat(const cv::Mat& img);
+    void fillNeuralNetInput(int level);
     std::vector<cv::Mat> wrapNetOutputLayer();
+    void calculateNet();
+    void calculateNetAtLevel(int level);
 
     //Max5
-    std::vector<cv::Mat> createLevelPyramidMax5(int i);
+    std::vector<cv::Mat> createLevelPyramidMax5(int level);
     void createMax5Pyramid();
 
     //Norm5
-    std::vector<cv::Mat> createLevelPyramidNorm5(int i);
+    std::vector<cv::Mat> createLevelPyramidNorm5(int level);
     void createNorm5Pyramid();
+    void calculateToNorm5(const cv::Mat& img);
 
     //Root-Filter sliding window
     void rootFilterAtLevel(int rootFilterIndx, int levelIndx, int stride);
     void rootFilterConvolution();
 
-    //Rectangle
+    //Rectangle transform
+    cv::Rect getNorm5RectAtLevelByOriginal(cv::Rect originalRect, int level);
+    cv::Rect getOriginalRectByNorm5AtLevel(cv::Rect norm5Rect, int level);
     void calculateOriginalRectangle();
     void groupOriginalRectangle();
 

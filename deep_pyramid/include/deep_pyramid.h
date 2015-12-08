@@ -20,7 +20,7 @@
 #define OBJECT 1
 #define NOT_OBJECT -1
 
-double IOU(cv::Rect r1,cv::Rect r2);
+double IOU(const cv::Rect& r1, const cv::Rect& r2);
 
 class ObjectBox
 {
@@ -34,78 +34,76 @@ public:
         return confidence<object.confidence;
     }
 };
-enum DeepPyramidMode {DETECT, TRAIN, TEST};
 
+//friend class DeepPyramid
 class DeepPyramidConfiguration
 {
 public:
-    DeepPyramidMode mode;
-
     std::string model_file;
     std::string trained_net_file;
 
-    int numLevels;
+    unsigned int numLevels;
 
     cv::Scalar objectRectangleColor;
 
     std::string svm_trained_file;
     cv::Size filterSize;
 
-    int stride;
-    DeepPyramidConfiguration(){};
-    DeepPyramidConfiguration(std::string deep_peramid_config, DeepPyramidMode mode);
+    unsigned int stride;
+
+    DeepPyramidConfiguration(std::string deep_pyramid_config);
 };
 
 class DeepPyramid
 {
 public:
-    DeepPyramid(std::string detector_config, DeepPyramidMode mode);
-    DeepPyramid(int num_levels, const std::string& model_file,
-                const std::string& trained_file);
-    int getLevelCount();
-    cv::Size norm5Size();
-    void cutFeatureFromImage(const cv::Mat& img, const std::vector<cv::Rect>& objectsRect,cv::Mat& features, cv::Mat& labels);
-private:
-    int getNorm5ChannelsCount();
+    DeepPyramid(std::string deep_pyramid_config);
+
+    void extractFeatureVectors(const cv::Mat& img, const std::vector<cv::Rect>& objectsRect,cv::Mat& features, cv::Mat& labels);
 
     DeepPyramidConfiguration config;
-    void addRootFilter(cv::Size filterSize, CvSVM* classifier);
-    void setImg(const cv::Mat& img);
-    std::vector<ObjectBox> detect(cv::Mat img);
-    cv::Mat getImageWithObjects();
-    void getFeatureVector(int levelIndx, cv::Point position, cv::Size size, cv::Mat& feature);
 
+    void detect(const cv::Mat& img, std::vector<ObjectBox>& objects);
 
-    int chooseLevel(cv::Size filterSize, cv::Rect boundBox);
-    cv::Mat getNorm5(int level, int channel);
+    void getNegFeatureVector(int levelIndx, const cv::Rect& rect, cv::Mat& feature);
 
-    cv::Mat getFeatureVector(cv::Rect rect, cv::Size size);
-    cv::Mat originalImg;
-    unsigned int num_levels;
+    int chooseLevel(const cv::Size& filterSize, const cv::Rect& boundBox);
+
+    //результат через параметры
+    void getPosFeatureVector(const cv::Rect& rect, const cv::Size& size, cv::Mat& feature);
+    //cv::Mat originalImg;
+    //в конфиге есть
+    //unsigned int num_levels;
     std::vector<cv::Mat> imagePyramid;
     std::vector< std::vector<cv::Mat> > max5;
     std::vector< std::vector<cv::Mat> > norm5;
     std::vector<std::pair<cv::Size, CvSVM*> > rootFilter;
 
-    std::vector<ObjectBox> detectedObjects;
+    //std::vector<ObjectBox> detectedObjects;
 
-    caffe::shared_ptr<caffe::Net<float> > net_;
-    int inputDimension;
-    int num_channels;
+    caffe::shared_ptr<caffe::Net<float> > net;
 
     //Image Pyramid
-    cv::Size calculateLevelPyramidImageSize(int level);
-    cv::Mat createLevelPyramidImage(int level);
-    void createImagePyramid();
+
+    //rename
+    cv::Size calculateLevelPyramidImageSize(const cv::Mat& img, int level);
+    //результат через параметры, переименовать  createImageAtPyrammidLevel?
+    cv::Mat createLevelPyramidImage(const cv::Mat& img, int level);
+    void createImagePyramid(const cv::Mat& img);
 
     //NeuralNet
+    //delete
     cv::Mat convertToFloat(const cv::Mat& img);
     void fillNeuralNetInput(int level);
+
+    //rename, результат через параметры
     std::vector<cv::Mat> wrapNetOutputLayer();
     void calculateNet();
+    //calculateImageRepresentation()
     void calculateNetAtLevel(int level);
 
     //Max5
+    //результат через параметры
     std::vector<cv::Mat> createLevelPyramidMax5(int level);
     void createMax5Pyramid();
 
@@ -115,12 +113,14 @@ private:
     void calculateToNorm5(const cv::Mat& img);
 
     //Root-Filter sliding window
-    void rootFilterAtLevel(int rootFilterIndx, int levelIndx, int stride);
+    void rootFilterAtLevel(int rootFilterIndx, int levelIdx);//, int stride);
+    //rename private: detect()
     void rootFilterConvolution();
 
     //Rectangle transform
-    cv::Rect getNorm5RectAtLevelByOriginal(cv::Rect originalRect, int level);
-    cv::Rect getOriginalRectByNorm5AtLevel(cv::Rect norm5Rect, int level);
+    cv::Rect originalRect2Norm5(const cv::Rect& originalRect, int level, const cv::Size& imgSize);
+    //rename
+    cv::Rect norm5Rect2Original(const cv::Rect& norm5Rect, int level, const cv::Size& imgSize);
     void calculateOriginalRectangle();
     void groupOriginalRectangle();
 

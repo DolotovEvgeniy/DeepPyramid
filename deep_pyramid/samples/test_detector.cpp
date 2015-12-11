@@ -11,12 +11,17 @@ using namespace cv;
 using namespace std;
 using namespace caffe;
 
+static const char argsDefs[] =
+    "{ | config           |     | Path to configuration file }"
+    "{ | image            |     | Path to image              }";
+
 int main(int argc, char *argv[])
 {
-    string config_file=argv[1];
-    DeepPyramid pyramid(config_file);
+    cv::CommandLineParser parser(argc, argv, argsDefs);
+    string configFileName = parser.get<std::string>("config");
+    DeepPyramid pyramid(configFileName);
 
-    FileStorage config(config_file, FileStorage::READ);
+    FileStorage config(configFileName, FileStorage::READ);
 
     string test_file_path;
     config["FileWithTestImage"]>>test_file_path;

@@ -10,14 +10,19 @@ using namespace cv;
 using namespace std;
 using namespace caffe;
 
+static const char argsDefs[] =
+    "{ | config           |     | Path to configuration file }"
+    "{ | image            |     | Path to image              }";
+
 int main(int argc, char *argv[])
 {
-    string config_file=argv[1];
-    DeepPyramid pyramid(config_file);
+    cv::CommandLineParser parser(argc, argv, argsDefs);
+    string configFileName = parser.get<std::string>("config");
+    DeepPyramid pyramid(configFileName);
 
     Mat image;
-    string image_file=argv[2];
-    image=imread(image_file);
+    string imageFileName = parser.get<std::string>("image");
+    image=imread(imageFileName);
 
     vector<ObjectBox> objects;
     pyramid.detect(image, objects);
@@ -28,7 +33,7 @@ int main(int argc, char *argv[])
     {
         rectangle(imageWithObjects, objects[i].originalImageBox, Scalar(0,255,0));
     }
-    imwrite(image_file+"_res.jpg", imageWithObjects);
+    imwrite(imageFileName+"_res.jpg", imageWithObjects);
 
     return 0;
 }

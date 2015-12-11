@@ -10,7 +10,6 @@
 #include <vector>
 #include <utility>
 
-
 #include <stdio.h>
 #define TIMER_START(name) int64 t_##name = getTickCount()
 #define TIMER_END(name) printf("TIMER_" #name ":\t%6.2fms\n", \
@@ -41,14 +40,14 @@ public:
     std::string model_file;
     std::string trained_net_file;
 
-    unsigned int numLevels;
+    int numLevels;
 
     cv::Scalar objectRectangleColor;
 
     std::string svm_trained_file;
     cv::Size filterSize;
 
-    unsigned int stride;
+    int stride;
 
     DeepPyramidConfiguration(const std::string& deep_pyramid_config);
 };

@@ -6,7 +6,7 @@ using namespace std;
 using namespace cv;
 
 
-void nms_max(vector<ObjectBox>& objects, double threshold)
+void NMS::nms_max(vector<ObjectBox>& objects, double threshold)
 {
     vector<ObjectBox> detectedObjects;
     while(!objects.empty())
@@ -45,7 +45,7 @@ Rect avg_rect(vector<Rect> rectangles)
     return resultRect;
 }
 
-void nms_avg(vector<ObjectBox>& objects, double box_threshold, double confidence_threshold)
+void NMS::nms_avg(vector<ObjectBox>& objects, double box_threshold, double confidence_threshold)
 {
     vector<ObjectBox> detectedObjects;
     vector< vector<ObjectBox> > clusters;

@@ -160,7 +160,7 @@ void DeepPyramid::createImageAtPyramidLevel(const Mat& img, const int& i, Mat& d
 void DeepPyramid::createImagePyramid(const Mat& img)
 {
     imagePyramid.clear();
-    for(unsigned int i=0;i<config.numLevels;i++)
+    for(int i=0; i<config.numLevels; i++)
     {
         Mat imgAtLevel;
         createImageAtPyramidLevel(img, i, imgAtLevel);
@@ -241,7 +241,7 @@ void DeepPyramid::createMax5AtLevel(const int& i, vector<Mat>& max5)
 }
 void DeepPyramid::createMax5Pyramid()
 {
-    for(unsigned int i=0; i<config.numLevels; i++)
+    for(int i=0; i<config.numLevels; i++)
     {
         vector<Mat> max5AtLevel;
         createMax5AtLevel(i, max5AtLevel);
@@ -450,7 +450,7 @@ void DeepPyramid::calculateToNorm5(const Mat& img)
 int DeepPyramid::chooseLevel(const Size& filterSize,const Rect& boundBox, const Size& imgSize)
 {
     vector<double> f;
-    for(unsigned int i=0;i<config.numLevels;i++)
+    for(int i=0;i<config.numLevels;i++)
     {
         Rect r=originalRect2Norm5(boundBox, i, imgSize);
 
@@ -508,7 +508,7 @@ void DeepPyramid::extractFeatureVectors(const Mat& img, const int& filterIdx, co
     calculateToNorm5(img);
     cout<<"Cut negatives"<<endl;
 
-    for(unsigned int level=0; level<config.numLevels; level++)
+    for(int level=0; level<config.numLevels; level++)
     {
         vector<Rect> norm5Objects;
         for(unsigned int j=0; j<norm5Objects.size(); j++)

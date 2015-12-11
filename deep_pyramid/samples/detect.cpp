@@ -13,15 +13,22 @@ using namespace caffe;
 int main(int argc, char *argv[])
 {
     string config_file=argv[1];
-    DeepPyramid pyramid(config_file, DeepPyramidMode::DETECT);
+    DeepPyramid pyramid(config_file);
 
     Mat image;
     string image_file=argv[2];
     image=imread(image_file);
 
-    pyramid.detect(image);
+    vector<ObjectBox> objects;
+    pyramid.detect(image, objects);
 
-    imwrite(image_file+"_res.jpg", pyramid.getImageWithObjects());
+    Mat imageWithObjects;
+    image.copyTo(imageWithObjects);
+    for(unsigned int i=0; i<objects.size();i++)
+    {
+        rectangle(imageWithObjects, objects[i].originalImageBox, Scalar(0,255,0));
+    }
+    imwrite(image_file+"_res.jpg", imageWithObjects);
 
     return 0;
 }

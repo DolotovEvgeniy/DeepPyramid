@@ -14,7 +14,7 @@ using namespace caffe;
 int main(int argc, char *argv[])
 {
     string config_file=argv[1];
-    DeepPyramid pyramid(config_file, DeepPyramidMode::TEST);
+    DeepPyramid pyramid(config_file);
 
     FileStorage config(config_file, FileStorage::READ);
 
@@ -41,7 +41,8 @@ int main(int argc, char *argv[])
     {
         Mat image;
         image=imread(test_image_folder+img_path+".jpg");
-        vector<ObjectBox> objects=pyramid.detect(image);
+        vector<ObjectBox> objects;
+        pyramid.detect(image, objects);
         output_file<<img_path<<endl;
         output_file<<objects.size()<<endl;
         for(unsigned int i=0;i<objects.size();i++)
@@ -58,7 +59,13 @@ int main(int argc, char *argv[])
             string test_image_name=img_path;
             std::replace( test_image_name.begin(), test_image_name.end(), '/', '_');
             cout<<"SAVE:"<<result_image_folder+test_image_name+".jpg"<<endl;
-            imwrite(result_image_folder+test_image_name+".jpg", pyramid.getImageWithObjects());
+            Mat imageWithObjects;
+            image.copyTo(imageWithObjects);
+            for(int i=0; i<objects.size();i++)
+            {
+                rectangle(imageWithObjects, objects[i].originalImageBox, Scalar(0,255,0));
+            }
+            imwrite(result_image_folder+test_image_name+".jpg", imageWithObjects);
         }
     }
     test_file.close();

@@ -57,11 +57,14 @@ class DeepPyramid
 public:
     DeepPyramid(cv::FileStorage& configFile);
 
+    ~DeepPyramid();
     void extractFeatureVectors(const cv::Mat& img, const int& filterIdx,const std::vector<cv::Rect>& objectsRect, cv::Mat& features, cv::Mat& labels);
 
-    DeepPyramidConfiguration config;
-
     void detect(const cv::Mat& img, std::vector<ObjectBox>& objects);
+
+private:
+
+    DeepPyramidConfiguration config;
 
     void getNegFeatureVector(int levelIndx, const cv::Rect& rect, cv::Mat& feature);
 

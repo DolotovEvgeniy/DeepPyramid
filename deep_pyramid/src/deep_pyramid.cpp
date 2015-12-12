@@ -562,3 +562,11 @@ void DeepPyramid::extractFeatureVectors(const Mat& img, const int& filterIdx, co
     }
 
 }
+
+DeepPyramid::~DeepPyramid()
+{
+    for(unsigned int i=0;i<rootFilter.size();i++)
+    {
+        delete rootFilter[i].second;
+    }
+}

@@ -33,10 +33,11 @@ public:
     }
 };
 
-//friend class DeepPyramid
+//class DeepPyramid;
+
 class DeepPyramidConfiguration
 {
-public:
+private:
     std::string model_file;
     std::string trained_net_file;
 
@@ -50,14 +51,15 @@ public:
     int stride;
 
     DeepPyramidConfiguration(cv::FileStorage& configFile);
+    friend class DeepPyramid;
 };
-
 class DeepPyramid
 {
 public:
     DeepPyramid(cv::FileStorage& configFile);
 
     ~DeepPyramid();
+
     void extractFeatureVectors(const cv::Mat& img, const int& filterIdx,const std::vector<cv::Rect>& objectsRect, cv::Mat& features, cv::Mat& labels);
 
     void detect(const cv::Mat& img, std::vector<ObjectBox>& objects);
@@ -119,7 +121,5 @@ private:
     int centerConformity;
     int boxSideConformity;
     void clear();
-
-
 };
-#endif // DEEP_PYRAMID_H
+#endif

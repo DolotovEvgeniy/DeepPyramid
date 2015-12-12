@@ -151,6 +151,8 @@ int main(int argc, char *argv[])
             cout<<"SAVE:"<<testConfig.result_image_folder+img_path+".jpg"<<endl;
         }
     }
+
+    config.release();
     test_file.close();
     output_file.close();
 

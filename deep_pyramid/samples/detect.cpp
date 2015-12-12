@@ -84,5 +84,7 @@ int main(int argc, char *argv[])
     }
     imwrite(imageFileName+"_res.jpg", imageWithObjects);
 
+    config.release();
+
     return ReturnCode::Success;
 }

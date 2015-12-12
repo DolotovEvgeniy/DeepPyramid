@@ -418,6 +418,8 @@ void DeepPyramid::groupOriginalRectangle(vector<ObjectBox>& detectedObjects)
 
 void DeepPyramid::detect(const Mat& img, vector<ObjectBox>& objects)
 {
+    assert(img.channels()==3);
+
     clear();
     createImagePyramid(img);
     createMax5Pyramid();

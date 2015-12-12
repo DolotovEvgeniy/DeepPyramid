@@ -428,6 +428,7 @@ void DeepPyramid::detect(const Mat& img, vector<ObjectBox>& objects)
     cout<<"group rectangle"<<endl;
     calculateOriginalRectangle(detectedObjects, Size(img.cols, img.rows));
     groupOriginalRectangle(detectedObjects);
+    objects=detectedObjects;
     cout<<"boundbox regressor: TODO"<<endl;
     cout<<"Object count:"<<detectedObjects.size()<<endl;
 }
@@ -461,7 +462,7 @@ int DeepPyramid::chooseLevel(const Size& filterSize,const Rect& boundBox, const 
     return bestLevel;
 }
 
-DeepPyramid::DeepPyramid(const string& detector_config) : config(detector_config)
+DeepPyramid::DeepPyramid(FileStorage& configFile) : config(configFile)
 {
 #ifdef CPU_ONLY
     Caffe::set_mode(Caffe::CPU);
@@ -482,20 +483,17 @@ DeepPyramid::DeepPyramid(const string& detector_config) : config(detector_config
 }
 
 
-DeepPyramidConfiguration::DeepPyramidConfiguration(const string& deep_pyramid_config)
+DeepPyramidConfiguration::DeepPyramidConfiguration(FileStorage& configFile)
 {
-    FileStorage config(deep_pyramid_config, FileStorage::READ);
+    configFile["NeuralNetwork-configuration"]>>model_file;
+    configFile["NeuralNetwork-trained-model"]>>trained_net_file;
+    configFile["NumberOfLevel"]>>numLevels;
 
-    config["NeuralNetwork-configuration"]>>model_file;
-    config["NeuralNetwork-trained-model"]>>trained_net_file;
-    config["NumberOfLevel"]>>numLevels;
+    configFile["Stride"]>>stride;
+    configFile["ObjectColor"]>>objectRectangleColor;
 
-    config["Stride"]>>stride;
-    config["ObjectColor"]>>objectRectangleColor;
-
-    config["SVM"]>>svm_trained_file;
-    config["Filter-size"]>>filterSize;
-    config.release();
+    configFile["SVM"]>>svm_trained_file;
+    configFile["Filter-size"]>>filterSize;
 }
 
 bool isContain(const Mat& img, Rect rect)

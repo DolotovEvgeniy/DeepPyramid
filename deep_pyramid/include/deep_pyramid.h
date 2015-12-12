@@ -49,13 +49,13 @@ public:
 
     int stride;
 
-    DeepPyramidConfiguration(const std::string& deep_pyramid_config);
+    DeepPyramidConfiguration(cv::FileStorage& configFile);
 };
 
 class DeepPyramid
 {
 public:
-    DeepPyramid(const std::string& deep_pyramid_config);
+    DeepPyramid(cv::FileStorage& configFile);
 
     void extractFeatureVectors(const cv::Mat& img, const int& filterIdx,const std::vector<cv::Rect>& objectsRect, cv::Mat& features, cv::Mat& labels);
 

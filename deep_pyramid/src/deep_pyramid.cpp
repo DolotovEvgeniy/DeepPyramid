@@ -85,40 +85,19 @@ Rect DeepPyramid::getNorm5RectByOriginal_ARTICLE(Rect originalRect)
 Rect DeepPyramid::originalRect2Norm5(const Rect& originalRect, int level, const Size& imgSize)
 {
     double longSide=std::max(imgSize.height, imgSize.width);
-    Blob<float>* input_layer = net->input_blobs()[0];
-    int networkInputSize=input_layer->width();
-    double scalePyramid = networkInputSize/(pow(2, (config.numLevels-1-level)/2.0)*longSide);
-
-    Rect boundBoxInPyramid;
-    boundBoxInPyramid=scaleRect(originalRect,scalePyramid);
-
     Blob<float>* output_layer = net->output_blobs()[0];
     int networkOutputSize=output_layer->width();
-    double scaleNorm5=networkOutputSize/(double)networkInputSize;
-
-    Rect boundBoxInNorm5;
-    boundBoxInNorm5=scaleRect(boundBoxInPyramid, scaleNorm5);
-
-    return boundBoxInNorm5;
+    double scale=networkOutputSize/(pow(2, (config.numLevels-1-level)/2.0)*longSide);
+    return scaleRect(originalRect, scale);
 }
 
 Rect DeepPyramid::norm5Rect2Original(const Rect& norm5Rect, int level, const Size& imgSize)
 {
-    Blob<float>* input_layer = net->input_blobs()[0];
-    Blob<float>* output_layer = net->output_blobs()[0];
-    int networkInputSize=input_layer->width();
-    int networkOutputSize=output_layer->width();
-    double scaleNorm5=networkInputSize/(double)networkOutputSize;
-
-    Rect boundBoxInPyramid;
-    boundBoxInPyramid=scaleRect(norm5Rect,scaleNorm5);
-
     double longSide=std::max(imgSize.height, imgSize.width);
-    double scalePyramid = (longSide*pow(2, (config.numLevels-1-level)/2.0))/networkInputSize;
-    Rect boundBoxOriginal;
-    boundBoxOriginal=scaleRect(boundBoxInPyramid, scalePyramid);
-
-    return boundBoxInPyramid;
+    Blob<float>* output_layer = net->output_blobs()[0];
+    int networkOutputSize=output_layer->width();
+    double scale=(pow(2, (config.numLevels-1-level)/2.0)*longSide)/networkOutputSize;
+    return scaleRect(norm5Rect, scale);
 }
 
 //Image Pyramid

@@ -94,7 +94,7 @@ Rect DeepPyramid::originalRect2Norm5(const Rect& originalRect, int level, const 
 
     Blob<float>* output_layer = net->output_blobs()[0];
     int networkOutputSize=output_layer->width();
-    double scaleNorm5=networkInputSize/(double)networkOutputSize;
+    double scaleNorm5=networkOutputSize/(double)networkInputSize;
 
     Rect boundBoxInNorm5;
     boundBoxInNorm5=scaleRect(boundBoxInPyramid, scaleNorm5);
@@ -205,7 +205,7 @@ void DeepPyramid::fillNeuralNetInput(int i)
 void DeepPyramid::calculateImageRepresentationAtLevel(const int& i)
 {
     const clock_t begin_time = clock();
-    cout<<"Calculate level: "+to_string(i+1)+" ..."<<endl;
+    cout<<"Calculate level: "+to_string(static_cast<long long>(i+1))+" ..."<<endl;
     fillNeuralNetInput(i);
     calculateImageRepresentation();
     cout << "Time:"<<float( clock () - begin_time ) /  CLOCKS_PER_SEC<<" s."<<endl;
@@ -321,23 +321,30 @@ void DeepPyramid::getPosFeatureVector(const Rect& rect, const Size& size, Mat& f
     cout<<"level:"<<bestLevel<<endl;
     Rect objectRect=originalRect2Norm5(rect, bestLevel, imgSize);
     cout<<"objectRect:"<<objectRect<<endl;
-    vector<Mat> norm5Resized;
-    for(int j=0;j<256;j++)
+    if(objectRect.area()==0)
     {
-        Mat m;
-        Mat objectMat=norm5[bestLevel][j];
-        resize(objectMat(objectRect), m, size);
-        norm5Resized.push_back(m);
+        feature.data=0;
     }
-
-    for(int w=0;w<size.width;w++)
+    else
     {
-        for(int h=0;h<size.height;h++)
+        vector<Mat> norm5Resized;
+        for(int j=0;j<256;j++)
         {
-            for(unsigned int k=0;k<norm5.size();k++)
+            Mat m;
+            Mat objectMat=norm5[bestLevel][j];
+            resize(objectMat(objectRect), m, size);
+            norm5Resized.push_back(m);
+        }
+
+        for(int w=0;w<size.width;w++)
+        {
+            for(int h=0;h<size.height;h++)
             {
-                int featureIndex=w+h*size.width+k*size.height*size.width;
-                feature.at<float>(0,featureIndex)=norm5Resized[k].at<float>(h,w);
+                for(unsigned int k=0;k<norm5.size();k++)
+                {
+                    int featureIndex=w+h*size.width+k*size.height*size.width;
+                    feature.at<float>(0,featureIndex)=norm5Resized[k].at<float>(h,w);
+                }
             }
         }
     }
@@ -383,7 +390,7 @@ void DeepPyramid::rootFilterConvolution(vector<ObjectBox>& detectedObjects)
     for(unsigned int i=0;i<rootFilter.size();i++)
         for(unsigned int j=0;j<norm5.size();j++)
         {
-            cout<<"Convolution with SVM level "+to_string(j+1)+"..."<<endl;
+            cout<<"Convolution with SVM level "+to_string(static_cast<long long>(j+1))+"..."<<endl;
             const clock_t begin_time = clock();
             rootFilterAtLevel(i, j, detectedObjects);
             cout << "Time:"<<float( clock () - begin_time ) /  CLOCKS_PER_SEC<<" s."<<endl;
@@ -500,10 +507,10 @@ DeepPyramidConfiguration::DeepPyramidConfiguration(FileStorage& configFile)
 
 bool isContain(const Mat& img, Rect rect)
 {
-    return (rect.x>0 && rect.y>0 && rect.x+rect.width>img.cols && rect.y+rect.height>img.rows);
+    return (rect.x>0 && rect.y>0 && rect.x+rect.width<img.cols && rect.y+rect.height<img.rows && rect.area()>0);
 }
 
-void DeepPyramid::extractFeatureVectors(const Mat& img, const int& filterIdx, const vector<Rect>& objectsRect, Mat& features, Mat& labels)
+void DeepPyramid::extractFeatureVectors(const Mat& img, const Size& filterSize, const vector<Rect>& objectsRect, Mat& features, Mat& labels)
 {
     calculateToNorm5(img);
     cout<<"Cut negatives"<<endl;
@@ -519,14 +526,14 @@ void DeepPyramid::extractFeatureVectors(const Mat& img, const int& filterIdx, co
 
         int stepWidth, stepHeight, stride=config.stride;
 
-        stepWidth=((norm5[0][0].cols/pow(2,(config.numLevels-1-level)/2.0)-rootFilter[filterIdx].first.width)/stride)+1;
-        stepHeight=((norm5[0][0].rows/pow(2,(config.numLevels-1-level)/2.0)-rootFilter[filterIdx].first.height)/stride)+1;
+        stepWidth=((norm5[0][0].cols/pow(2,(config.numLevels-1-level)/2.0)-filterSize.width)/stride)+1;
+        stepHeight=((norm5[0][0].rows/pow(2,(config.numLevels-1-level)/2.0)-filterSize.height)/stride)+1;
 
         for(int w=0;w<stepWidth;w+=stride)
             for(int h=0;h<stepHeight;h+=stride)
             {
                 Point p(stride*w, stride*h);
-                Rect sample(p, rootFilter[filterIdx].first);
+                Rect sample(p, filterSize);
 
                 bool addNeg=true;
                 for(unsigned int objectNum=0; objectNum<norm5Objects.size() ;objectNum++)
@@ -540,7 +547,7 @@ void DeepPyramid::extractFeatureVectors(const Mat& img, const int& filterIdx, co
 
                 if(addNeg)
                 {
-                    Mat feature(1,rootFilter[filterIdx].first.area()*norm5[0].size(),CV_32FC1);
+                    Mat feature(1,filterSize.area()*norm5[0].size(),CV_32FC1);
                     getNegFeatureVector(level, sample, feature);
                     features.push_back(feature);
                     labels.push_back(NOT_OBJECT);
@@ -553,11 +560,13 @@ void DeepPyramid::extractFeatureVectors(const Mat& img, const int& filterIdx, co
     {
         if(isContain(img, objectsRect[i]))
         {
-            Mat feature(1,rootFilter[filterIdx].first.area()*norm5[0].size(),CV_32FC1);
-            getPosFeatureVector(objectsRect[i], rootFilter[filterIdx].first, feature, Size(img.cols, img.rows));
-
-            features.push_back(feature);
-            labels.push_back(OBJECT);
+            Mat feature(1,filterSize.area()*norm5[0].size(),CV_32FC1);
+            getPosFeatureVector(objectsRect[i], filterSize, feature, Size(img.cols, img.rows));
+            if(feature.data)
+            {
+                features.push_back(feature);
+                labels.push_back(OBJECT);
+            }
         }
     }
 
@@ -569,4 +578,18 @@ DeepPyramid::~DeepPyramid()
     {
         delete rootFilter[i].second;
     }
+}
+
+void DeepPyramid::addRootFilter(const cv::Size& filterSize, CvSVM* svm)
+{
+    rootFilter.push_back(std::make_pair(filterSize, svm));
+}
+
+void DeepPyramid::clearRootFilters()
+{
+    for(unsigned int i=0;i<rootFilter.size();i++)
+    {
+        delete rootFilter[i].second;
+    }
+    rootFilter.clear();
 }

@@ -54,7 +54,6 @@ void NMS::nms_avg(vector<ObjectBox>& objects, double box_threshold, double confi
     {
         ObjectBox objectWithMaxConfidence=*max_element(objects.begin(),objects.end());
         vector<ObjectBox> cluster;
-       // cluster.push_back(objectWithMaxConfidence);
         vector<ObjectBox> newObjects;
         for(unsigned int i=0;i<objects.size();i++)
         {

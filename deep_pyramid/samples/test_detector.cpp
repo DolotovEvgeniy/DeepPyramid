@@ -56,7 +56,7 @@ public:
 
 };
 
-void writeDetectionResultInFile(ofstream& file, const string& img_path, const vector<ObjectBox> & objects)
+void writeDetectionResultInFile(ofstream& file, const string& img_path, const vector<BoundingBox> & objects)
 {
     file<<img_path<<endl;
     file<<objects.size()<<endl;
@@ -70,7 +70,7 @@ void writeDetectionResultInFile(ofstream& file, const string& img_path, const ve
     }
 }
 
-void drawObjects(const Mat& src, Mat& dst, const vector<ObjectBox>& objects)
+void drawObjects(const Mat& src, Mat& dst, const vector<BoundingBox>& objects)
 {
     src.copyTo(dst);
     for(unsigned int i=0; i<objects.size();i++)
@@ -135,7 +135,7 @@ int main(int argc, char *argv[])
             return ReturnCode::ImageFileNotFound;
         }
 
-        vector<ObjectBox> objects;
+        vector<BoundingBox> objects;
         pyramid.detect(image, objects);
 
         writeDetectionResultInFile(output_file, img_path, objects);

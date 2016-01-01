@@ -73,7 +73,7 @@ int main(int argc, char *argv[])
 
     DeepPyramid pyramid(config);
 
-    vector<ObjectBox> objects;
+    vector<BoundingBox> objects;
     pyramid.detect(image, objects);
 
     Mat imageWithObjects;

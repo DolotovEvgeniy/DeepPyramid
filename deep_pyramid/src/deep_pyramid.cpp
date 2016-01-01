@@ -329,7 +329,7 @@ void DeepPyramid::getPosFeatureVector(const Rect& rect, const Size& size, Mat& f
     }
 }
 
-void DeepPyramid::rootFilterAtLevel(int rootFilterIndx, int levelIndx, vector<ObjectBox>& detectedObjects)
+void DeepPyramid::rootFilterAtLevel(int rootFilterIndx, int levelIndx, vector<BoundingBox>& detectedObjects)
 {
     Size filterSize=rootFilter[rootFilterIndx].first;
     CvSVM* filterSVM=rootFilter[rootFilterIndx].second;
@@ -353,7 +353,7 @@ void DeepPyramid::rootFilterAtLevel(int rootFilterIndx, int levelIndx, vector<Ob
 
             if(predict==OBJECT)
             {
-                ObjectBox object;
+                BoundingBox object;
                 object.confidence=std::fabs(filterSVM->predict(feature,true));
                 object.level=levelIndx;
                 object.norm5Box=Rect(p,filterSize);
@@ -364,7 +364,7 @@ void DeepPyramid::rootFilterAtLevel(int rootFilterIndx, int levelIndx, vector<Ob
     cout<<"Count of detected objects: "<<detectedObjectCount<<endl;
 }
 
-void DeepPyramid::rootFilterConvolution(vector<ObjectBox>& detectedObjects)
+void DeepPyramid::rootFilterConvolution(vector<BoundingBox>& detectedObjects)
 {
     for(unsigned int i=0;i<rootFilter.size();i++)
         for(unsigned int j=0;j<norm5.size();j++)
@@ -382,7 +382,7 @@ void DeepPyramid::rootFilterConvolution(vector<ObjectBox>& detectedObjects)
 //Rectangle
 //
 
-void DeepPyramid::calculateOriginalRectangle(vector<ObjectBox>& detectedObjects, const Size& imgSize)
+void DeepPyramid::calculateOriginalRectangle(vector<BoundingBox>& detectedObjects, const Size& imgSize)
 {
     for(unsigned int i=0;i<detectedObjects.size();i++)
     {
@@ -390,19 +390,13 @@ void DeepPyramid::calculateOriginalRectangle(vector<ObjectBox>& detectedObjects,
         detectedObjects[i].originalImageBox=originalRect;
     }
 }
-double IOU(const Rect& r1, const Rect& r2)
-{
-    Rect runion= r1 & r2;
 
-    return (double)runion.area()/(r1.area()+r2.area()-runion.area());
-}
-
-void DeepPyramid::groupOriginalRectangle(vector<ObjectBox>& detectedObjects)
+void DeepPyramid::groupOriginalRectangle(vector<BoundingBox>& detectedObjects)
 {
     NMS::nms_avg(detectedObjects,0.2,0.7);
 }
 
-void DeepPyramid::detect(const Mat& img, vector<ObjectBox>& objects)
+void DeepPyramid::detect(const Mat& img, vector<BoundingBox>& objects)
 {
     assert(img.channels()==3);
 
@@ -411,7 +405,7 @@ void DeepPyramid::detect(const Mat& img, vector<ObjectBox>& objects)
     createMax5Pyramid();
     createNorm5Pyramid();
     cout<<"filter"<<endl;
-    vector<ObjectBox> detectedObjects;
+    vector<BoundingBox> detectedObjects;
     rootFilterConvolution(detectedObjects);
     cout<<"group rectangle"<<endl;
     calculateOriginalRectangle(detectedObjects, Size(img.cols, img.rows));

@@ -5,33 +5,22 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/ml/ml.hpp>
+
 #include <caffe/caffe.hpp>
 #include <caffe/common.hpp>
+
 #include <vector>
 #include <utility>
-
 #include <stdio.h>
+
+#include <bounding_box.h>
+
 #define TIMER_START(name) int64 t_##name = getTickCount()
 #define TIMER_END(name) printf("TIMER_" #name ":\t%6.2fms\n", \
     1000.f * ((getTickCount() - t_##name) / getTickFrequency()))
 
 #define OBJECT 1
 #define NOT_OBJECT -1
-
-double IOU(const cv::Rect& r1, const cv::Rect& r2);
-
-class ObjectBox
-{
-public:
-    double confidence;
-    int level;
-    cv::Rect norm5Box;
-    cv::Rect originalImageBox;
-    bool operator< (ObjectBox object)
-    {
-        return confidence<object.confidence;
-    }
-};
 
 class DeepPyramidConfiguration
 {
@@ -61,7 +50,7 @@ public:
 
     void extractFeatureVectors(const cv::Mat& img, const cv::Size& filterSize,const std::vector<cv::Rect>& objectsRect, cv::Mat& features, cv::Mat& labels);
 
-    void detect(const cv::Mat& img, std::vector<ObjectBox>& objects);
+    void detect(const cv::Mat& img, std::vector<BoundingBox>& objects);
 
     void addRootFilter(const cv::Size& filterSize, CvSVM* svm);
 
@@ -106,16 +95,16 @@ private:
     void calculateToNorm5(const cv::Mat& img);
 
     //Root-Filter sliding window
-    void rootFilterAtLevel(int rootFilterIndx, int levelIdx, std::vector<ObjectBox>& detectedObjects);
+    void rootFilterAtLevel(int rootFilterIndx, int levelIdx, std::vector<BoundingBox>& detectedObjects);
     //rename private: detect()
-    void rootFilterConvolution(std::vector<ObjectBox>& detectedObjects);
+    void rootFilterConvolution(std::vector<BoundingBox>& detectedObjects);
 
     //Rectangle transform
     cv::Rect originalRect2Norm5(const cv::Rect& originalRect, int level, const cv::Size& imgSize);
     //rename
     cv::Rect norm5Rect2Original(const cv::Rect& norm5Rect, int level, const cv::Size& imgSize);
-    void calculateOriginalRectangle(std::vector<ObjectBox>& detectedObjects, const cv::Size& imgSize);
-    void groupOriginalRectangle(std::vector<ObjectBox>& detectedObjects);
+    void calculateOriginalRectangle(std::vector<BoundingBox>& detectedObjects, const cv::Size& imgSize);
+    void groupOriginalRectangle(std::vector<BoundingBox>& detectedObjects);
 
     //Rectangle transform ARTICLE
     cv::Rect getRectByNorm5Pixel_ARTICLE(cv::Point point);

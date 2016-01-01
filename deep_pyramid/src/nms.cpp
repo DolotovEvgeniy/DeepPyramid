@@ -1,6 +1,7 @@
 #include <opencv2/objdetect/objdetect.hpp>
 
 #include <algorithm>
+#include <iostream>
 
 #include <nms.h>
 

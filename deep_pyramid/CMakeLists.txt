@@ -9,7 +9,7 @@ FILE(GLOB hdrs "*.h*" "${CMAKE_CURRENT_SOURCE_DIR}/include/*.h*")
 FILE(GLOB srcs "*.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 
 #----------------------------------------------------------------------------------#
-option(WITH_CPU_ONLY "Caffe will be used in CPU or GPU mode" OFF)
+option(WITH_CPU_ONLY "Caffe will be used in CPU or GPU mode" ON)
 #----------------------------------------------------------------------------------#
 
 add_library(${PROJECT_NAME} STATIC ${srcs} ${hdrs})

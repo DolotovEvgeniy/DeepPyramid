@@ -393,7 +393,8 @@ void DeepPyramid::calculateOriginalRectangle(vector<BoundingBox>& detectedObject
 
 void DeepPyramid::groupOriginalRectangle(vector<BoundingBox>& detectedObjects)
 {
-    NMS::nms_avg(detectedObjects,0.2,0.7);
+  //  NMS::nms_avg(detectedObjects,0.2,0.7);
+    NMS::nms_intersect(detectedObjects,0.2,0.7);
 }
 
 void DeepPyramid::detect(const Mat& img, vector<BoundingBox>& objects)

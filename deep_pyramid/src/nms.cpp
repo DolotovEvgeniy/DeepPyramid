@@ -96,3 +96,56 @@ void NMS::nms_avg(vector<BoundingBox>& objects, double box_threshold, double con
 
     objects=detectedObjects;
 }
+
+void NMS::nms_intersect(vector<BoundingBox>& objects, double box_threshold, double confidence_threshold)
+{
+    vector<BoundingBox> detectedObjects;
+    vector< vector<BoundingBox> > clusters;
+    vector<double> maxConfidenceInCluster;
+    while(!objects.empty())
+    {
+        BoundingBox objectWithMaxConfidence=*max_element(objects.begin(),objects.end());
+        vector<BoundingBox> cluster;
+        vector<BoundingBox> newObjects;
+        for(unsigned int i=0;i<objects.size();i++)
+        {
+            if(IOU(objectWithMaxConfidence.originalImageBox, objects[i].originalImageBox)<=box_threshold)
+            {
+                newObjects.push_back(objects[i]);
+            }
+            else
+            {
+                cluster.push_back(objects[i]);
+            }
+
+        }
+        clusters.push_back(cluster);
+        maxConfidenceInCluster.push_back(objectWithMaxConfidence.confidence);
+        objects=newObjects;
+    }
+    for(unsigned int clusterNum=0;clusterNum<clusters.size();clusterNum++)
+    {
+        vector<BoundingBox> boxInCluster;
+        boxInCluster=clusters[clusterNum];
+        cout<<"Box in cluster:"<<boxInCluster.size()<<endl;
+        vector<Rect> rectWithMaxConfidence;
+        for(unsigned int j=0;j<boxInCluster.size();j++)
+        {
+            if(boxInCluster[j].confidence>confidence_threshold*maxConfidenceInCluster[clusterNum])
+            {
+                rectWithMaxConfidence.push_back(boxInCluster[j].originalImageBox);
+            }
+        }
+        cout<<"box with max conf:"<<rectWithMaxConfidence.size()<<endl;
+        BoundingBox resultObject;
+        resultObject.originalImageBox=rectWithMaxConfidence[0];
+        for(int i=0;i<rectWithMaxConfidence.size();i++)
+        {
+            resultObject.originalImageBox=resultObject.originalImageBox & rectWithMaxConfidence[i];
+        }
+        resultObject.confidence=maxConfidenceInCluster[clusterNum];
+        detectedObjects.push_back(resultObject);
+    }
+
+    objects=detectedObjects;
+}

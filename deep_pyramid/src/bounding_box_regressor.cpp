@@ -4,6 +4,7 @@
 
 #include "bounding_box_regressor.h"
 #include "bounding_box.h"
+#include "rectangle_transform.h"
 
 using namespace std;
 using namespace cv;
@@ -16,41 +17,26 @@ void BoundingBoxRegressor::regress(vector<BoundingBox> &objects, const vector<Ma
     }
 }
 
+double matToScalar(const Mat& mat)
+{
+    return mat.at<double>(0, 0);
+}
+
 void BoundingBoxRegressor::regressBox(BoundingBox& object, const Mat &feature)
 {
-    Rect detectedRect=object.originalImageBox;
+    Rect rect=object.originalImageBox;
 
-    Point rectCenter;
-
-    rectCenter.x=detectedRect.x+detectedRect.width/2.0;
-    rectCenter.y=detectedRect.y+detectedRect.height/2.0;
-
-    int rectWidth=detectedRect.width;
-    int rectHeight=detectedRect.height;
-
-    Mat dX,dY,dW,dH;
+    Point rectCenter=getRectangleCenter(rect);
 
     Point newRectCenter;
-
-    dX=xWeights*feature;
-    newRectCenter.x=rectWidth*dX.at<double>(0, 0)+rectCenter.x;
-
-    dY=yWeights*feature;
-    newRectCenter.y=rectWidth*dY.at<double>(0, 0)+rectCenter.y;
+    newRectCenter.x=rect.width*matToScalar(xWeights*feature)+rectCenter.x;
+    newRectCenter.y=rect.width*matToScalar(yWeights*feature)+rectCenter.y;
 
     int newRectWidth, newRectHeight;
+    newRectWidth=rect.width*exp(matToScalar(widthWeights*feature));
+    newRectHeight=rect.height*exp(matToScalar(heightWeights*feature));
 
-    dW=widthWeights*feature;
-    newRectWidth=rectWidth*exp(dW.at<double>(0, 0));
-
-    dH=heightWeights*feature;
-    newRectHeight=rectHeight*exp(dH.at<double>(0, 0));
-
-    Rect newRect;
-    newRect.x=newRectCenter.x-newRectWidth/2.0;
-    newRect.y=newRectCenter.y-newRectHeight/2.0;
-    newRect.width=newRectWidth;
-    newRect.height=newRectHeight;
+    Rect newRect=makeRectangle(newRectCenter, newRectWidth, newRectHeight);
 
     object.originalImageBox=newRect;
 }

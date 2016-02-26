@@ -1,6 +1,7 @@
 #include "rectangle_transform.h"
 
 using namespace cv;
+using namespace std;
 
 Point getRectangleCenter(const Rect &rect)
 {
@@ -10,4 +11,43 @@ Point getRectangleCenter(const Rect &rect)
 Rect makeRectangle(const Point& center, const int& width, const int& height)
 {
     return Rect(center.x-width/2.0, center.y-height/2.0, width, height);
+}
+
+double IOU(const Rect& rect1, const Rect& rect2)
+{
+    Rect unionRect= rect1 & rect2;
+
+    return unionRect.area()/(double)(rect1.area()+rect2.area()-unionRect.area());
+}
+
+Rect avg_rect(const vector<Rect>& rectangles)
+{
+    Rect resultRect;
+
+    double sumOfX=0,sumOfY=0,sumOfWidth=0, sumOfHeight=0;
+    for(vector<Rect>::const_iterator rectangle=rectangles.begin(); rectangle!=rectangles.end(); rectangle++)
+    {
+        sumOfX+=rectangle->x;
+        sumOfY+=rectangle->y;
+        sumOfWidth+=rectangle->width;
+        sumOfHeight+=rectangle->height;
+    }
+    int n=rectangles.size();
+    resultRect.x=sumOfX/n;
+    resultRect.y=sumOfY/n;
+    resultRect.width=sumOfWidth/n;
+    resultRect.height=sumOfHeight/n;
+    return resultRect;
+}
+
+Rect intersectRectangles(const vector<Rect>& rectangles)
+{
+    Rect resultRectangle=rectangles[0];
+
+    for(vector<Rect>::const_iterator rectangle=rectangles.begin(); rectangle!=rectangles.end(); rectangle++)
+    {
+        resultRectangle=resultRectangle & (*rectangle);
+    }
+
+    return resultRectangle;
 }

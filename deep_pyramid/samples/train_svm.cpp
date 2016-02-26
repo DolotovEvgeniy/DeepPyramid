@@ -242,5 +242,6 @@ int main(int argc, char *argv[])
 
     config.release();
     train_file.close();
+    delete svm;
     return ReturnCode::Success;
 }

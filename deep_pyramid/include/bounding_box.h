@@ -5,8 +5,6 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
-enum BoxLevel{NORM5, ORIGINAL};
-
 class BoundingBox
 {
 public:
@@ -14,12 +12,11 @@ public:
     int level;
     cv::Rect norm5Box;
     cv::Rect originalImageBox;
+
     bool operator<(BoundingBox object)
     {
         return confidence<object.confidence;
     }
 };
-
-double IOU(const cv::Rect& rect1, const cv::Rect& rect2);
 
 #endif

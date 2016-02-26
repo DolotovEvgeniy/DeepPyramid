@@ -51,3 +51,12 @@ Rect intersectRectangles(const vector<Rect>& rectangles)
 
     return resultRectangle;
 }
+
+Rect scaleRect(Rect rect, double scale)
+{
+    rect.x*=scale;
+    rect.y*=scale;
+    rect.width*=scale;
+    rect.height*=scale;
+    return rect;
+}

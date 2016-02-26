@@ -15,6 +15,8 @@ cv::Rect avg_rect(const std::vector<cv::Rect>& rectangles);
 
 cv::Rect intersectRectangles(const std::vector<cv::Rect>& rectangles);
 
+cv::Rect scaleRect(cv::Rect rect, double scale);
+
 double IOU(const cv::Rect& rect1, const cv::Rect& rect2);
 
 #endif

@@ -9,7 +9,7 @@ class NMS
 {
 public:
     void processBondingBox(std::vector<BoundingBox>& objects,const double& box_threshold,
-                           const double& confidence_threshold);
+                           const double& confidence_threshold=0);
 protected:
     virtual BoundingBox mergeCluster(BoundingBoxCluster& cluster, const double& confidence_threshold)=0;
 private:

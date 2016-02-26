@@ -11,15 +11,6 @@ using namespace cv;
 using namespace std;
 using namespace caffe;
 
-Rect scaleRect(Rect r, double scale)
-{
-    r.x*=scale;
-    r.y*=scale;
-    r.width*=scale;
-    r.height*=scale;
-    return r;
-}
-
 Rect DeepPyramid::getRectByNorm5Pixel_ARTICLE(Point p)
 {
     Point center=p*centerConformity;

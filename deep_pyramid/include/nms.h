@@ -32,17 +32,4 @@ class NMSintersect : public NMS
     BoundingBox mergeCluster(BoundingBoxCluster& cluster, const double& confidence_threshold);
 };
 
-/*
-class NMS
-{
-public:
-    static void nms_max(std::vector<BoundingBox>& objects, double threshold);
-
-    static void nms_avg(std::vector<BoundingBox>& objects, double box_threshold, double confidence_threshold);
-
-    static void nms_intersect(std::vector<BoundingBox>& objects, double box_threshold, double confidence_threshold);
-};
-*/
-
-
 #endif

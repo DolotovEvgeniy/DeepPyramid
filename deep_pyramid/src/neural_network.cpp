@@ -17,7 +17,7 @@ NeuralNetwork::NeuralNetwork(string configFile, string trainedModel)
     assert(input_layer->width()==input_layer->height());
 }
 
-void NeuralNetwork::processImage(const Mat &img, vector<Mat> &map)
+void NeuralNetwork::processImage(const Mat &img, FeatureMap& map)
 {
     fillNeuralNetInput(img);
     calculate();
@@ -45,7 +45,7 @@ void NeuralNetwork::fillNeuralNetInput(const Mat &img)
     split(img_float, input_channels);
 }
 
-void NeuralNetwork::getNeuralNetOutput(vector<Mat> &map)
+void NeuralNetwork::getNeuralNetOutput(FeatureMap &map)
 {
     Blob<float>* output_layer = net->output_blobs()[0];
     const float* begin = output_layer->cpu_data();
@@ -58,7 +58,7 @@ void NeuralNetwork::getNeuralNetOutput(vector<Mat> &map)
             data[i]=begin[i+output_layer->height()*output_layer->width()*k];
         }
         Mat conv(output_layer->height(),output_layer->width(), CV_32FC1, data);
-        map.push_back(conv.clone());
+        map.addLayer(conv.clone());
     }
 }
 

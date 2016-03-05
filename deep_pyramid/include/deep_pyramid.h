@@ -12,6 +12,7 @@
 
 #include <bounding_box.h>
 #include "neural_network.h"
+#include "root_filter.h"
 
 #define TIMER_START(name) int64 t_##name = getTickCount()
 #define TIMER_END(name) printf("TIMER_" #name ":\t%6.2fms\n", \
@@ -46,42 +47,31 @@ public:
 
     ~DeepPyramid();
 
-    void extractFeatureVectors(const cv::Mat& img, const cv::Size& filterSize,const std::vector<cv::Rect>& objectsRect, cv::Mat& features, cv::Mat& labels);
+    //   void extractFeatureVectors(const cv::Mat& img, const cv::Size& filterSize,const std::vector<cv::Rect>& objectsRect, cv::Mat& features, cv::Mat& labels);
 
     void detect(const cv::Mat& img, std::vector<BoundingBox>& objects);
 
-    void addRootFilter(const cv::Size& filterSize, CvSVM* svm);
-
-    void clearRootFilters();
+    void constructFeatureMapPyramid(const cv::Mat& img, std::vector<FeatureMap>& maps);
 
 private:
 
     DeepPyramidConfiguration config;
 
-    void getNegFeatureVector(int levelIndx, const cv::Rect& rect, cv::Mat& feature);
+    //  void getNegFeatureVector(int levelIndx, const cv::Rect& rect, cv::Mat& feature);
 
     int chooseLevel(const cv::Size& filterSize, const cv::Rect& boundBox, const cv::Size& imgSize);
 
-    void getPosFeatureVector(const cv::Rect& rect, const cv::Size& size, cv::Mat& feature, const cv::Size& imgSize);
+    //   void getPosFeatureVector(const cv::Rect& rect, const cv::Size& size, cv::Mat& feature, const cv::Size& imgSize);
 
-    std::vector< std::vector<cv::Mat> > maps;
-    std::vector<std::pair<cv::Size, CvSVM*> > rootFilter;
+    std::vector<RootFilter> rootFilter;
 
     // caffe::shared_ptr<caffe::Net<float> > net;
     NeuralNetwork* net;
     //Image Pyramid
     cv::Size embeddedImageSize(const cv::Size& img, const int& level);
-    void createImageAtPyramidLevel(const cv::Mat& img, const int& level, cv::Mat& dst);
     void constructImagePyramid(const cv::Mat& img, std::vector<cv::Mat>& imgPyramid);
 
-
-    //Max5
-    void constructFeatureMapPyramid(const cv::Mat& img, std::vector<std::vector<cv::Mat> >& map);
-
-    //Root-Filter sliding window
-    void rootFilterAtLevel(int rootFilterIndx, int levelIdx, std::vector<BoundingBox>& detectedObjects);
-    //rename private: detect()
-    void rootFilterConvolution(std::vector<BoundingBox>& detectedObjects);
+    void detect(const std::vector<FeatureMap>& maps,std::vector<BoundingBox>& detectedObjects);
 
     //Rectangle transform
     cv::Rect originalRect2Norm5(const cv::Rect& originalRect, int level, const cv::Size& imgSize);
@@ -89,7 +79,5 @@ private:
     cv::Rect norm5Rect2Original(const cv::Rect& norm5Rect, int level, const cv::Size& imgSize);
     void calculateOriginalRectangle(std::vector<BoundingBox>& detectedObjects, const cv::Size& imgSize);
     void groupOriginalRectangle(std::vector<BoundingBox>& detectedObjects);
-
-    void clear();
 };
 #endif

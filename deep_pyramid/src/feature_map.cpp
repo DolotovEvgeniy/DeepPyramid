@@ -16,7 +16,6 @@ Mat uniteMats(std::vector<Mat> m)
     {
         unite.push_back(m[i].reshape(1,1));
     }
-cout<<unite.cols<<", "<<unite.rows<<endl;
     return unite;
 }
 
@@ -34,15 +33,10 @@ void FeatureMap::normalize()
 {
     float mean,deviation;
     calculateMeanAndDeviationValue(map,mean,deviation);
-    cout<<"Mean: "<<mean<<endl;
-    cout<<"Dev: "<<deviation<<endl;
     for(unsigned int layer=0;layer<map.size(); layer++)
     {
-        map[layer]=(map[layer]-mean);///deviation;
+        map[layer]=(map[layer]-mean)/deviation;
     }
-    calculateMeanAndDeviationValue(map,mean,deviation);
-    cout<<"Mean: "<<mean<<endl;
-    cout<<"Dev: "<<deviation<<endl;
 }
 
 void FeatureMap::extractFeatureMap(const Rect &rect, FeatureMap& extractedMap) const
@@ -80,14 +74,4 @@ void FeatureMap::reshapeToVector(Mat& feature) const
                 }
             }
         }
-}
-
-void FeatureMap::show() const
-{
-    for(int i=0;i<map.size();i++)
-    {
-        imshow("map", map[i]);
-        waitKey(5);
-    }
-    std::cout<<"finish"<<endl;
 }

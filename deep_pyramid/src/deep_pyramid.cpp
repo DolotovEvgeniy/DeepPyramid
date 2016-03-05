@@ -49,18 +49,6 @@ Size DeepPyramid::embeddedImageSize(const Size& imgSize, const int& i)
     return newImgSize;
 }
 
-void DeepPyramid::createImageAtPyramidLevel(const Mat& img, const int& i, Mat& dst)
-{
-    Size networkInputSize=net->inputLayerSize();
-
-    dst=Mat(networkInputSize.width, networkInputSize.height, CV_8UC3, Scalar::all(0));
-    Size pictureSize=embeddedImageSize(Size(img.cols, img.rows), i);
-
-    Mat resizedImg;
-    resize(img, resizedImg, pictureSize);
-    resizedImg.copyTo(dst(Rect(Point(0,0),pictureSize)));
-}
-
 void DeepPyramid::constructImagePyramid(const Mat& img, vector<Mat>& imgPyramid)
 {
     Size imgSize(img.cols, img.rows);
@@ -81,45 +69,16 @@ void DeepPyramid::constructImagePyramid(const Mat& img, vector<Mat>& imgPyramid)
 //
 ////
 
-//NeuralNet
-//
-Mat uniteMats(std::vector<Mat> m)
-{
-    Mat unite(1,0,CV_32FC1);
-    for(unsigned int i=0;i<m.size();i++)
-    {
-        unite.push_back(m[i].reshape(1,1));
-    }
-
-    return unite;
-}
-
-void calculateMeanAndDeviationValue(std::vector<Mat> level, float& meanValue, float& deviationValue)
-{
-    Mat unite=uniteMats(level);
-    Mat mean, deviation;
-    //корень или квадрат?
-    meanStdDev(unite, mean, deviation);
-    meanValue=mean.at<double>(0,0);
-    deviationValue=deviation.at<double>(0,0);
-}
-
-void DeepPyramid::constructFeatureMapPyramid(const Mat& img, vector<vector<Mat> >& maps)
+void DeepPyramid::constructFeatureMapPyramid(const Mat& img, vector<FeatureMap>& maps)
 {
     vector<Mat> imgPyramid;
     constructImagePyramid(img, imgPyramid);
-    float mean,deviation;
     for(int i=0; i<config.numLevels; i++)
     {
-        vector<Mat> max5AtLevel;
-        net->processImage(imgPyramid[i], max5AtLevel);
-        calculateMeanAndDeviationValue(max5AtLevel,mean,deviation);
-        vector<Mat> mapAtLevel;
-        for(unsigned int j=0;j<max5AtLevel.size();j++)
-        {
-            mapAtLevel.push_back((max5AtLevel[j]-mean)/deviation);
-        }
-        maps.push_back(mapAtLevel);
+        FeatureMap map;
+        net->processImage(imgPyramid[i], map);
+        map.normalize();
+        maps.push_back(map);
     }
 }
 //
@@ -133,6 +92,7 @@ void DeepPyramid::constructFeatureMapPyramid(const Mat& img, vector<vector<Mat> 
 
 //Root-Filter sliding window
 //
+/*
 void DeepPyramid::getNegFeatureVector(int levelIndx, const Rect& rect, Mat& feature)
 {
     for(unsigned int k=0;k<maps[levelIndx].size();k++)
@@ -185,51 +145,23 @@ void DeepPyramid::getPosFeatureVector(const Rect& rect, const Size& size, Mat& f
     }
 }
 
-void DeepPyramid::rootFilterAtLevel(int rootFilterIndx, int levelIndx, vector<BoundingBox>& detectedObjects)
-{
-    Size filterSize=rootFilter[rootFilterIndx].first;
-    CvSVM* filterSVM=rootFilter[rootFilterIndx].second;
-    int stepWidth, stepHeight;
-
-    int stride=config.stride;
-    stepWidth=((maps[levelIndx][0].cols/pow(2,(config.numLevels-1-levelIndx)/2.0)-filterSize.width)/stride)+1;
-    stepHeight=((maps[levelIndx][0].rows/pow(2,(config.numLevels-1-levelIndx)/2.0)-filterSize.height)/stride)+1;
-    int detectedObjectCount=0;
-
-    for(int w=0;w<stepWidth;w+=stride)
-        for(int h=0;h<stepHeight;h+=stride)
-        {
-
-            Point p(stride*w,stride*h);
-            cv::Mat feature(1,filterSize.height*filterSize.width*maps[levelIndx].size(),CV_32FC1);
-            getNegFeatureVector(levelIndx, Rect(p, filterSize), feature);
-
-            int predict;
-            predict=filterSVM->predict(feature);
-
-            if(predict==OBJECT)
-            {
-                BoundingBox object;
-                object.confidence=std::fabs(filterSVM->predict(feature,true));
-                object.level=levelIndx;
-                object.norm5Box=Rect(p,filterSize);
-                detectedObjects.push_back(object);
-                detectedObjectCount++;
-            }
-        }
-    cout<<"Count of detected objects: "<<detectedObjectCount<<endl;
-}
-
-void DeepPyramid::rootFilterConvolution(vector<BoundingBox>& detectedObjects)
+*/
+void DeepPyramid::detect(const vector<FeatureMap>& maps, vector<BoundingBox>& detectedObjects)
 {
     for(unsigned int i=0;i<rootFilter.size();i++)
         for(unsigned int j=0;j<maps.size();j++)
         {
-            cout<<"Convolution with SVM level "+to_string(static_cast<long long>(j+1))+"..."<<endl;
-            const clock_t begin_time = clock();
-            rootFilterAtLevel(i, j, detectedObjects);
-            cout << "Time:"<<float( clock () - begin_time ) /  CLOCKS_PER_SEC<<" s."<<endl;
-            cout<<"Status: Success!"<<endl;
+            std::vector<cv::Rect> detectedRect;
+            std::vector<double> confidence;
+            rootFilter[i].processFeatureMap(maps[j], detectedRect, confidence);
+            for(unsigned int k=0;k<detectedRect.size();k++)
+            {
+                BoundingBox object;
+                object.confidence=confidence[k];
+                object.level=j;
+                object.norm5Box=detectedRect[k];
+                detectedObjects.push_back(object);
+            }
         }
 }
 //
@@ -256,25 +188,17 @@ void DeepPyramid::groupOriginalRectangle(vector<BoundingBox>& detectedObjects)
 void DeepPyramid::detect(const Mat& img, vector<BoundingBox>& objects)
 {
     assert(img.channels()==3);
-
-    clear();
-
+    vector<FeatureMap> maps;
     constructFeatureMapPyramid(img, maps);
-   // createNorm5Pyramid();
     cout<<"filter"<<endl;
     vector<BoundingBox> detectedObjects;
-    rootFilterConvolution(detectedObjects);
+    detect(maps ,detectedObjects);
     cout<<"group rectangle"<<endl;
     calculateOriginalRectangle(detectedObjects, Size(img.cols, img.rows));
     groupOriginalRectangle(detectedObjects);
     objects=detectedObjects;
     cout<<"boundbox regressor: TODO"<<endl;
     cout<<"Object count:"<<detectedObjects.size()<<endl;
-}
-
-void DeepPyramid::clear()
-{
-    maps.clear();
 }
 
 int DeepPyramid::chooseLevel(const Size& filterSize,const Rect& boundBox, const Size& imgSize)
@@ -297,7 +221,7 @@ DeepPyramid::DeepPyramid(FileStorage& configFile) : config(configFile)
 
     CvSVM* classifier=new CvSVM();
     classifier->load(config.svm_trained_file.c_str());
-    rootFilter.push_back(std::make_pair(config.filterSize, classifier));
+    rootFilter.push_back(RootFilter(config.filterSize, classifier));
 }
 
 
@@ -314,11 +238,7 @@ DeepPyramidConfiguration::DeepPyramidConfiguration(FileStorage& configFile)
     configFile["Filter-size"]>>filterSize;
 }
 
-bool isContain(const Mat& img, Rect rect)
-{
-    return (rect.x>0 && rect.y>0 && rect.x+rect.width<img.cols && rect.y+rect.height<img.rows && rect.area()>0);
-}
-
+/*
 void DeepPyramid::extractFeatureVectors(const Mat& img, const Size& filterSize, const vector<Rect>& objectsRect, Mat& features, Mat& labels)
 {
     constructFeatureMapPyramid(img, maps);
@@ -380,25 +300,7 @@ void DeepPyramid::extractFeatureVectors(const Mat& img, const Size& filterSize, 
     }
 
 }
-
+*/
 DeepPyramid::~DeepPyramid()
 {
-    for(unsigned int i=0;i<rootFilter.size();i++)
-    {
-        delete rootFilter[i].second;
-    }
-}
-
-void DeepPyramid::addRootFilter(const cv::Size& filterSize, CvSVM* svm)
-{
-    rootFilter.push_back(std::make_pair(filterSize, svm));
-}
-
-void DeepPyramid::clearRootFilters()
-{
-    for(unsigned int i=0;i<rootFilter.size();i++)
-    {
-        delete rootFilter[i].second;
-    }
-    rootFilter.clear();
 }

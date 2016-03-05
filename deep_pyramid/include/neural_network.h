@@ -11,19 +11,21 @@
 #include <vector>
 #include <string>
 
+#include "feature_map.h"
+
 class NeuralNetwork
 {
 public:
     NeuralNetwork() {}
     NeuralNetwork(std::string configFile, std::string trainedModel);
-    void processImage(const cv::Mat& img, std::vector<cv::Mat>& map);
+    void processImage(const cv::Mat& img, FeatureMap& map);
     cv::Size inputLayerSize();
     cv::Size outputLayerSize();
 private:
     caffe::shared_ptr<caffe::Net<float> > net;
 
     void fillNeuralNetInput(const cv::Mat& img);
-    void getNeuralNetOutput(std::vector<cv::Mat>& map);
+    void getNeuralNetOutput(FeatureMap& map);
     void calculate();
 };
 

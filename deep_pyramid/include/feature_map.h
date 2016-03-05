@@ -16,7 +16,6 @@ public:
     void resize(const cv::Size& size);
     cv::Size size() const;
     void reshapeToVector(cv::Mat&  feature) const;
-    void show() const;
 private:
     std::vector<cv::Mat> map;
 };

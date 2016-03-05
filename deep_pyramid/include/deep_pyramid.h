@@ -6,14 +6,12 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/ml/ml.hpp>
 
-#include <caffe/caffe.hpp>
-#include <caffe/common.hpp>
-
 #include <vector>
 #include <utility>
 #include <stdio.h>
 
 #include <bounding_box.h>
+#include "neural_network.h"
 
 #define TIMER_START(name) int64 t_##name = getTickCount()
 #define TIMER_END(name) printf("TIMER_" #name ":\t%6.2fms\n", \
@@ -66,33 +64,19 @@ private:
 
     void getPosFeatureVector(const cv::Rect& rect, const cv::Size& size, cv::Mat& feature, const cv::Size& imgSize);
 
-    std::vector<cv::Mat> imagePyramid;
-    std::vector< std::vector<cv::Mat> > max5;
-    std::vector< std::vector<cv::Mat> > norm5;
+    std::vector< std::vector<cv::Mat> > maps;
     std::vector<std::pair<cv::Size, CvSVM*> > rootFilter;
 
-    caffe::shared_ptr<caffe::Net<float> > net;
-
+    // caffe::shared_ptr<caffe::Net<float> > net;
+    NeuralNetwork* net;
     //Image Pyramid
-    cv::Size imageSizeAtPyramidLevel(const cv::Mat& img, const int& level);
+    cv::Size embeddedImageSize(const cv::Size& img, const int& level);
     void createImageAtPyramidLevel(const cv::Mat& img, const int& level, cv::Mat& dst);
-    void createImagePyramid(const cv::Mat& img);
+    void constructImagePyramid(const cv::Mat& img, std::vector<cv::Mat>& imgPyramid);
 
-    //NeuralNet
-    void fillNeuralNetInput(int level);
-
-    void getNeuralNetOutput(std::vector<cv::Mat>& netOutput);
-    void calculateImageRepresentation();
-    void calculateImageRepresentationAtLevel(const int& level);
 
     //Max5
-    void createMax5AtLevel(const int& level,  std::vector<cv::Mat>& max5);
-    void createMax5Pyramid();
-
-    //Norm5
-    void createNorm5AtLevel(const int& level, std::vector<cv::Mat>& norm5);
-    void createNorm5Pyramid();
-    void calculateToNorm5(const cv::Mat& img);
+    void constructFeatureMapPyramid(const cv::Mat& img, std::vector<std::vector<cv::Mat> >& map);
 
     //Root-Filter sliding window
     void rootFilterAtLevel(int rootFilterIndx, int levelIdx, std::vector<BoundingBox>& detectedObjects);
@@ -106,12 +90,6 @@ private:
     void calculateOriginalRectangle(std::vector<BoundingBox>& detectedObjects, const cv::Size& imgSize);
     void groupOriginalRectangle(std::vector<BoundingBox>& detectedObjects);
 
-    //Rectangle transform ARTICLE
-    cv::Rect getRectByNorm5Pixel_ARTICLE(cv::Point point);
-    cv::Rect getRectByNorm5Rect_ARTICLE(cv::Rect rect);
-    cv::Rect getNorm5RectByOriginal_ARTICLE(cv::Rect originalRect);
-    int centerConformity;
-    int boxSideConformity;
     void clear();
 };
 #endif

@@ -120,14 +120,12 @@ void DeepPyramid::detect(const Mat& img, vector<BoundingBox>& objects) const
     vector<FeatureMap> maps;
     constructFeatureMapPyramid(img, maps);
     cout<<"filter"<<endl;
-    vector<BoundingBox> detectedObjects;
-    detect(maps ,detectedObjects);
+    detect(maps, objects);
     cout<<"group rectangle"<<endl;
-    calculateOriginalRectangle(detectedObjects, Size(img.cols, img.rows));
-    groupRectangle(detectedObjects);
-    objects=detectedObjects;
+    calculateOriginalRectangle(objects, Size(img.cols, img.rows));
+    groupRectangle(objects);
     cout<<"boundbox regressor: TODO"<<endl;
-    cout<<"Object count:"<<detectedObjects.size()<<endl;
+    cout<<"Object count:"<<objects.size()<<endl;
 }
 
 DeepPyramid::DeepPyramid(FileStorage& configFile) : config(configFile)

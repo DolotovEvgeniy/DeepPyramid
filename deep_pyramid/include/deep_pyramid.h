@@ -13,6 +13,7 @@
 #include <bounding_box.h>
 #include "neural_network.h"
 #include "root_filter.h"
+#include <bounding_box_regressor.h>
 
 #define TIMER_START(name) int64 t_##name = getTickCount()
 #define TIMER_END(name) printf("TIMER_" #name ":\t%6.2fms\n", \
@@ -60,6 +61,8 @@ private:
     std::vector<RootFilter> rootFilter;
 
     NeuralNetwork* net;
+    BoundingBoxRegressor regressor;
+
     //Image Pyramid
     cv::Size embeddedImageSize(const cv::Size& img, const int& level) const;
     void constructImagePyramid(const cv::Mat& img, std::vector<cv::Mat>& imgPyramid) const;

@@ -222,7 +222,7 @@ int main(int argc, char *argv[])
 
         Mat image;
         vector<Rect> objects;
-vector<float> confidence;
+        vector<float> confidence;
         data.next(image, objects, confidence);
 
         extractFeatureVectors(image, trainConfig.filterSize, objects, pyramid, newFeatures, newLabels);

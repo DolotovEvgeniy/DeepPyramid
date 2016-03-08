@@ -9,7 +9,7 @@
 using namespace std;
 using namespace cv;
 
-void BoundingBoxRegressor::regress(vector<BoundingBox> &objects, const vector<Mat> &features)
+void BoundingBoxRegressor::processBoundingBoxes(vector<BoundingBox> &objects, const vector<Mat> &features)
 {
     for(unsigned int i=0;i<objects.size();i++)
     {

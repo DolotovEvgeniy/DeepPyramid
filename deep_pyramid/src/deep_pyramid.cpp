@@ -11,15 +11,7 @@ using namespace cv;
 using namespace std;
 using namespace caffe;
 
-Rect DeepPyramid::originalRect2Norm5(const Rect& originalRect, int level, const Size& imgSize)
-{
-    double longSide=std::max(imgSize.height, imgSize.width);
-    Size networkOutputSize=net->outputLayerSize();
-    double scale=networkOutputSize.width/(pow(2, (config.numLevels-1-level)/2.0)*longSide);
-    return scaleRect(originalRect, scale);
-}
-
-Rect DeepPyramid::norm5Rect2Original(const Rect& norm5Rect, int level, const Size& imgSize)
+Rect DeepPyramid::norm5Rect2Original(const Rect& norm5Rect, int level, const Size& imgSize) const
 {
     double longSide=std::max(imgSize.height, imgSize.width);
     Size networkOutputSize=net->outputLayerSize();
@@ -29,7 +21,7 @@ Rect DeepPyramid::norm5Rect2Original(const Rect& norm5Rect, int level, const Siz
 
 //Image Pyramid
 //
-Size DeepPyramid::embeddedImageSize(const Size& imgSize, const int& i)
+Size DeepPyramid::embeddedImageSize(const Size& imgSize, const int& i) const
 {
     Size networkInputSize=net->inputLayerSize();
     Size newImgSize;
@@ -49,7 +41,7 @@ Size DeepPyramid::embeddedImageSize(const Size& imgSize, const int& i)
     return newImgSize;
 }
 
-void DeepPyramid::constructImagePyramid(const Mat& img, vector<Mat>& imgPyramid)
+void DeepPyramid::constructImagePyramid(const Mat& img, vector<Mat>& imgPyramid) const
 {
     Size imgSize(img.cols, img.rows);
     for(int level=0; level<config.numLevels; level++)
@@ -69,7 +61,7 @@ void DeepPyramid::constructImagePyramid(const Mat& img, vector<Mat>& imgPyramid)
 //
 ////
 
-void DeepPyramid::constructFeatureMapPyramid(const Mat& img, vector<FeatureMap>& maps)
+void DeepPyramid::constructFeatureMapPyramid(const Mat& img, vector<FeatureMap>& maps) const
 {
     vector<Mat> imgPyramid;
     constructImagePyramid(img, imgPyramid);
@@ -83,70 +75,7 @@ void DeepPyramid::constructFeatureMapPyramid(const Mat& img, vector<FeatureMap>&
 }
 //
 ////
-
-//Norm5
-//
-
-//
-////
-
-//Root-Filter sliding window
-//
-/*
-void DeepPyramid::getNegFeatureVector(int levelIndx, const Rect& rect, Mat& feature)
-{
-    for(unsigned int k=0;k<maps[levelIndx].size();k++)
-    {
-        Mat m;
-        maps[levelIndx][k](rect).copyTo(m);
-        for(int h=0;h<rect.height;h++)
-        {
-            for(int w=0;w<rect.width;w++)
-            {
-                feature.at<float>(0,w+h*rect.width+k*rect.area())=m.at<float>(h, w);
-            }
-        }
-    }
-}
-
-void DeepPyramid::getPosFeatureVector(const Rect& rect, const Size& size, Mat& feature, const Size& imgSize)
-{
-    cout<<"rect"<<rect<<endl;
-    int bestLevel=chooseLevel(size, rect, imgSize);
-    cout<<"level:"<<bestLevel<<endl;
-    Rect objectRect=originalRect2Norm5(rect, bestLevel, imgSize);
-    cout<<"objectRect:"<<objectRect<<endl;
-    if(objectRect.area()==0)
-    {
-        feature.data=0;
-    }
-    else
-    {
-        vector<Mat> norm5Resized;
-        for(int j=0;j<256;j++)
-        {
-            Mat m;
-            Mat objectMat=maps[bestLevel][j];
-            resize(objectMat(objectRect), m, size);
-            norm5Resized.push_back(m);
-        }
-
-        for(int w=0;w<size.width;w++)
-        {
-            for(int h=0;h<size.height;h++)
-            {
-                for(unsigned int k=0;k<maps.size();k++)
-                {
-                    int featureIndex=w+h*size.width+k*size.height*size.width;
-                    feature.at<float>(0,featureIndex)=norm5Resized[k].at<float>(h,w);
-                }
-            }
-        }
-    }
-}
-
-*/
-void DeepPyramid::detect(const vector<FeatureMap>& maps, vector<BoundingBox>& detectedObjects)
+void DeepPyramid::detect(const vector<FeatureMap>& maps, vector<BoundingBox>& detectedObjects) const
 {
     for(unsigned int i=0;i<rootFilter.size();i++)
         for(unsigned int j=0;j<maps.size();j++)
@@ -170,7 +99,7 @@ void DeepPyramid::detect(const vector<FeatureMap>& maps, vector<BoundingBox>& de
 //Rectangle
 //
 
-void DeepPyramid::calculateOriginalRectangle(vector<BoundingBox>& detectedObjects, const Size& imgSize)
+void DeepPyramid::calculateOriginalRectangle(vector<BoundingBox>& detectedObjects, const Size& imgSize) const
 {
     for(unsigned int i=0;i<detectedObjects.size();i++)
     {
@@ -179,15 +108,15 @@ void DeepPyramid::calculateOriginalRectangle(vector<BoundingBox>& detectedObject
     }
 }
 
-void DeepPyramid::groupOriginalRectangle(vector<BoundingBox>& detectedObjects)
+void DeepPyramid::groupRectangle(vector<BoundingBox>& detectedObjects) const
 {
     NMSavg nms;
     nms.processBondingBox(detectedObjects,0.2,0.7);
 }
 
-void DeepPyramid::detect(const Mat& img, vector<BoundingBox>& objects)
+void DeepPyramid::detect(const Mat& img, vector<BoundingBox>& objects) const
 {
-    assert(img.channels()==3);
+    CV_Assert(img.channels()==3);
     vector<FeatureMap> maps;
     constructFeatureMapPyramid(img, maps);
     cout<<"filter"<<endl;
@@ -195,24 +124,10 @@ void DeepPyramid::detect(const Mat& img, vector<BoundingBox>& objects)
     detect(maps ,detectedObjects);
     cout<<"group rectangle"<<endl;
     calculateOriginalRectangle(detectedObjects, Size(img.cols, img.rows));
-    groupOriginalRectangle(detectedObjects);
+    groupRectangle(detectedObjects);
     objects=detectedObjects;
     cout<<"boundbox regressor: TODO"<<endl;
     cout<<"Object count:"<<detectedObjects.size()<<endl;
-}
-
-int DeepPyramid::chooseLevel(const Size& filterSize,const Rect& boundBox, const Size& imgSize)
-{
-    vector<double> f;
-    for(int i=0;i<config.numLevels;i++)
-    {
-        Rect r=originalRect2Norm5(boundBox, i, imgSize);
-
-        f.push_back(abs(filterSize.width-r.width)+abs(r.height-filterSize.height));
-    }
-    int bestLevel=distance(f.begin(), min_element(f.begin(), f.end()));
-
-    return bestLevel;
 }
 
 DeepPyramid::DeepPyramid(FileStorage& configFile) : config(configFile)
@@ -238,69 +153,6 @@ DeepPyramidConfiguration::DeepPyramidConfiguration(FileStorage& configFile)
     configFile["Filter-size"]>>filterSize;
 }
 
-/*
-void DeepPyramid::extractFeatureVectors(const Mat& img, const Size& filterSize, const vector<Rect>& objectsRect, Mat& features, Mat& labels)
-{
-    constructFeatureMapPyramid(img, maps);
-    cout<<"Cut negatives"<<endl;
-
-    for(int level=0; level<config.numLevels; level++)
-    {
-        vector<Rect> norm5Objects;
-        for(unsigned int j=0; j<norm5Objects.size(); j++)
-        {
-            Rect objectRect=originalRect2Norm5(objectsRect[j], level, Size(img.cols, img.rows));
-            norm5Objects.push_back(objectRect);
-        }
-
-        int stepWidth, stepHeight, stride=config.stride;
-
-        stepWidth=((maps[0][0].cols/pow(2,(config.numLevels-1-level)/2.0)-filterSize.width)/stride)+1;
-        stepHeight=((maps[0][0].rows/pow(2,(config.numLevels-1-level)/2.0)-filterSize.height)/stride)+1;
-
-        for(int w=0;w<stepWidth;w+=stride)
-            for(int h=0;h<stepHeight;h+=stride)
-            {
-                Point p(stride*w, stride*h);
-                Rect sample(p, filterSize);
-
-                bool addNeg=true;
-                for(unsigned int objectNum=0; objectNum<norm5Objects.size() ;objectNum++)
-                {
-                    if(IOU(norm5Objects[objectNum],sample)>0.3)
-                    {
-                        addNeg=false;
-                        break;
-                    }
-                }
-
-                if(addNeg)
-                {
-                    Mat feature(1,filterSize.area()*maps[0].size(),CV_32FC1);
-                    getNegFeatureVector(level, sample, feature);
-                    features.push_back(feature);
-                    labels.push_back(NOT_OBJECT);
-                }
-
-            }
-    }
-    cout<<"Cut positive"<<endl;
-    for(unsigned int i=0;i<objectsRect.size();i++)
-    {
-        if(isContain(img, objectsRect[i]))
-        {
-            Mat feature(1,filterSize.area()*maps[0].size(),CV_32FC1);
-            getPosFeatureVector(objectsRect[i], filterSize, feature, Size(img.cols, img.rows));
-            if(feature.data)
-            {
-                features.push_back(feature);
-                labels.push_back(OBJECT);
-            }
-        }
-    }
-
-}
-*/
 DeepPyramid::~DeepPyramid()
 {
 }

@@ -6,6 +6,7 @@
 #include <iostream>
 
 #include <deep_pyramid.h>
+#include "rectangle_transform.h"
 
 #include <string>
 
@@ -90,6 +91,89 @@ Rect readEllipseToRect(istream& file)
 }
 #define MARGIN_THRESHOLD 1
 
+Rect originalRect2Norm5(const Rect& originalRect, int level, const Size& imgSize,
+                        const Size& featureMapSize, const int& levelCount,
+                        const double& levelScale)
+{
+    double longSide=std::max(imgSize.height, imgSize.width);
+    double scale=featureMapSize.width/(pow(levelScale, levelCount-level-1)*longSide);
+    return scaleRect(originalRect, scale);
+}
+
+int chooseLevel(const Size& filterSize, const Rect& boundBox, const Size& imgSize,
+                const Size& featureMapSize, const int& levelCount, const double& levelScale)
+{
+    vector<double> f;
+    for(int i=0;i<levelCount;i++)
+    {
+        Rect r=originalRect2Norm5(boundBox, i, imgSize, featureMapSize, levelCount, levelScale);
+
+        f.push_back(abs(filterSize.width-r.width)+abs(r.height-filterSize.height));
+    }
+    int bestLevel=distance(f.begin(), min_element(f.begin(), f.end()));
+
+    return bestLevel;
+}
+
+void extractFeatureVectors(const Mat& img, const Size& filterSize, const vector<Rect>& objects,
+                           const DeepPyramid& pyramid, Mat& features, Mat& labels)
+{
+    int stride=1;
+    vector<FeatureMap> maps;
+    pyramid.constructFeatureMapPyramid(img, maps);
+    Size mapSize=maps[0].size();
+    for(int level=0; level<pyramid.levelCount; level++)
+    {
+        vector<Rect> rectAtLevel;
+        for(unsigned int rect=0; rect<objects.size();rect++)
+        {
+            rectAtLevel.push_back(originalRect2Norm5(objects[rect], level,
+                                                     Size(img.cols, img.rows),maps[level].size(),
+                                                     pyramid.levelCount, pyramid.levelScale));
+        }
+        for(int width=0; width<mapSize.width-filterSize.width; width+=stride)
+            for(int height=0; height<mapSize.height-filterSize.height; height+=stride)
+            {
+                Rect featureMapRectangle(Point(width, height), filterSize);
+
+                bool extractFeature=true;
+                for(unsigned int rect=0;rect<rectAtLevel.size();rect++)
+                {
+                    if(IOU(featureMapRectangle, rectAtLevel[rect])>0.3)
+                    {
+                        extractFeature=false;
+                        break;
+                    }
+                }
+
+                if(extractFeature)
+                {
+                    FeatureMap map;
+                    maps[level].extractFeatureMap(featureMapRectangle, map);
+                    Mat feature;
+                    map.reshapeToVector(feature);
+                    features.push_back(feature);
+                    labels.push_back(NOT_OBJECT);
+                }
+            }
+    }
+    for(unsigned int rect=0;rect<objects.size();rect++)
+    {
+        int level=chooseLevel(filterSize, objects[rect], Size(img.cols, img.rows),
+                              maps[0].size(), pyramid.levelCount, pyramid.levelScale);
+        Rect featureMapRectangle=originalRect2Norm5(objects[rect], level,
+                                                    Size(img.cols, img.rows),maps[level].size(),
+                                                    pyramid.levelCount, pyramid.levelScale);
+        FeatureMap map;
+        maps[level].extractFeatureMap(featureMapRectangle, map);
+        map.resize(filterSize);
+        Mat feature;
+        map.reshapeToVector(feature);
+        features.push_back(feature);
+        labels.push_back(OBJECT);
+    }
+}
+
 int main(int argc, char *argv[])
 {
     CommandLineParser parser(argc, argv, argsDefs);
@@ -151,8 +235,7 @@ int main(int argc, char *argv[])
             objects.push_back(rect);
         }
 
-        pyramid.extractFeatureVectors(image, trainConfig.filterSize, objects, features, labels);
-
+        extractFeatureVectors(image, trainConfig.filterSize, objects, pyramid, features, labels);
         cout<<"Count of features:"<<features.rows<<endl;
     }
     CvSVMParams params;
@@ -215,7 +298,8 @@ int main(int argc, char *argv[])
 
             Mat newFeatures;
             Mat newLabels;
-            pyramid.extractFeatureVectors(image, trainConfig.filterSize, objects, newFeatures, newLabels);
+
+             extractFeatureVectors(image, trainConfig.filterSize, objects, pyramid, newFeatures, newLabels);
 
             for(int i=0;i<newFeatures.rows;i++)
             {

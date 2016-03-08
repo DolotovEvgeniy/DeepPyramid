@@ -16,14 +16,13 @@
 class RootFilter
 {
 public:
-    RootFilter(cv::Size filterSize, CvSVM* svm, int stride=1);
+    RootFilter(cv::Size filterSize, CvSVM* svm);
     void processFeatureMap(const FeatureMap& map, std::vector<cv::Rect>& detectedRect,
-                           std::vector<double>& confidence);
+                           std::vector<double>& confidence, int stride=1) const;
 private:
     cv::Size filterSize;
     CvSVM* svm;
-    int stride;
-    float classify(const FeatureMap& map, bool returnDFVal=false);
+    float classify(const FeatureMap& map, bool returnDFVal=false) const;
 };
 
 #endif

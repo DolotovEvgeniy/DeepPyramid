@@ -47,37 +47,28 @@ public:
 
     ~DeepPyramid();
 
-    //   void extractFeatureVectors(const cv::Mat& img, const cv::Size& filterSize,const std::vector<cv::Rect>& objectsRect, cv::Mat& features, cv::Mat& labels);
+    void detect(const cv::Mat& img, std::vector<BoundingBox>& objects) const;
 
-    void detect(const cv::Mat& img, std::vector<BoundingBox>& objects);
-
-    void constructFeatureMapPyramid(const cv::Mat& img, std::vector<FeatureMap>& maps);
-
+    void constructFeatureMapPyramid(const cv::Mat& img, std::vector<FeatureMap>& maps) const;
+    double levelScale;
+    int  levelCount;
 private:
+
 
     DeepPyramidConfiguration config;
 
-    //  void getNegFeatureVector(int levelIndx, const cv::Rect& rect, cv::Mat& feature);
-
-    int chooseLevel(const cv::Size& filterSize, const cv::Rect& boundBox, const cv::Size& imgSize);
-
-    //   void getPosFeatureVector(const cv::Rect& rect, const cv::Size& size, cv::Mat& feature, const cv::Size& imgSize);
-
     std::vector<RootFilter> rootFilter;
 
-    // caffe::shared_ptr<caffe::Net<float> > net;
     NeuralNetwork* net;
     //Image Pyramid
-    cv::Size embeddedImageSize(const cv::Size& img, const int& level);
-    void constructImagePyramid(const cv::Mat& img, std::vector<cv::Mat>& imgPyramid);
+    cv::Size embeddedImageSize(const cv::Size& img, const int& level) const;
+    void constructImagePyramid(const cv::Mat& img, std::vector<cv::Mat>& imgPyramid) const;
 
-    void detect(const std::vector<FeatureMap>& maps,std::vector<BoundingBox>& detectedObjects);
+    void detect(const std::vector<FeatureMap>& maps,std::vector<BoundingBox>& detectedObjects) const;
 
-    //Rectangle transform
-    cv::Rect originalRect2Norm5(const cv::Rect& originalRect, int level, const cv::Size& imgSize);
     //rename
-    cv::Rect norm5Rect2Original(const cv::Rect& norm5Rect, int level, const cv::Size& imgSize);
-    void calculateOriginalRectangle(std::vector<BoundingBox>& detectedObjects, const cv::Size& imgSize);
-    void groupOriginalRectangle(std::vector<BoundingBox>& detectedObjects);
+    cv::Rect norm5Rect2Original(const cv::Rect& norm5Rect, int level, const cv::Size& imgSize) const;
+    void calculateOriginalRectangle(std::vector<BoundingBox>& detectedObjects, const cv::Size& imgSize) const;
+    void groupRectangle(std::vector<BoundingBox>& detectedObjects) const;
 };
 #endif

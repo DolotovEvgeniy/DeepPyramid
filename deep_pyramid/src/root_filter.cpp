@@ -4,7 +4,7 @@ using namespace std;
 using namespace cv;
 
 void RootFilter::processFeatureMap(const FeatureMap &map, vector<Rect> &detectedRect,
-                                   vector<double>& confidence)
+                                   vector<double>& confidence, int stride) const
 {
     Size mapSize=map.size();
     for(int width=0; width<mapSize.width-filterSize.width; width+=stride)
@@ -22,16 +22,15 @@ void RootFilter::processFeatureMap(const FeatureMap &map, vector<Rect> &detected
     }
 }
 
-float RootFilter::classify(const FeatureMap &map, bool returnDFVal)
+float RootFilter::classify(const FeatureMap &map, bool returnDFVal) const
 {
     Mat feature;
     map.reshapeToVector(feature);
     return svm->predict(feature, returnDFVal);
 }
 
-RootFilter::RootFilter(Size _filterSize, CvSVM *_svm, int _stride)
+RootFilter::RootFilter(Size _filterSize, CvSVM *_svm)
 {
     filterSize=_filterSize;
     svm=_svm;
-    stride=_stride;
 }

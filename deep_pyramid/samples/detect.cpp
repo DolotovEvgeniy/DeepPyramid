@@ -31,14 +31,11 @@ enum
 };
 };
 
-int main(int argc, char *argv[])
+int parseCommandLine(int argc, char *argv[], Mat& image, FileStorage& config)
 {
     cv::CommandLineParser parser(argc, argv, argsDefs);
     string configFileName = parser.get<std::string>("config");
-
-    Mat image;
     string imageFileName = parser.get<std::string>("image");
-
 
     if (configFileName.empty() == true)
     {
@@ -53,7 +50,7 @@ int main(int argc, char *argv[])
         return ReturnCode::ImageFileNotSpecified;
     }
 
-    FileStorage config(configFileName, FileStorage::READ);
+    config.open(configFileName, FileStorage::READ);
 
     if(config.isOpened()==false)
     {
@@ -71,20 +68,66 @@ int main(int argc, char *argv[])
         return ReturnCode::ImageFileNotFound;
     }
 
-    DeepPyramid pyramid(config);
+    return ReturnCode::Success;
+}
 
-    vector<Rect> objects;
-    vector<float> confidence;
-
-    pyramid.detect(image, objects, confidence);
-
+void saveImageWithObjects(string file_name, const Mat& image, const vector<Rect>& objects)
+{
     Mat imageWithObjects;
     image.copyTo(imageWithObjects);
     for(unsigned int i=0; i<objects.size();i++)
     {
         rectangle(imageWithObjects, objects[i], Scalar(0,255,0));
     }
-    imwrite(imageFileName+"_res.jpg", imageWithObjects);
+    imwrite(file_name, imageWithObjects);
+}
+
+void readConfig(const FileStorage& config, string& model_file, string& trained_net_file,
+                vector<string>& svm_file, vector<Size>& svmSize, int& levelCount, int& stride)
+{
+    config["NeuralNetwork-configuration"]>>model_file;
+    config["NeuralNetwork-trained-model"]>>trained_net_file;
+    config["NumberOfLevel"]>>levelCount;
+
+    config["Stride"]>>stride;
+
+    string svm_trained_file;
+    config["SVM"]>>svm_trained_file;
+    svm_file.push_back(svm_trained_file);
+    Size filterSize;
+    config["Filter-size"]>>filterSize;
+    svmSize.push_back(filterSize);
+}
+
+int main(int argc, char *argv[])
+{
+    Mat image;
+    FileStorage config;
+
+    int returnCode=parseCommandLine(argc, argv, image, config);
+
+    if(returnCode!=ReturnCode::Success)
+    {
+        return returnCode;
+    }
+
+    string model_file, trained_net_file;
+    int levelCount;
+
+    vector<string> svm_file;
+    vector<Size> svmSize;
+    int stride;
+
+    readConfig(config, model_file, trained_net_file, svm_file, svmSize, levelCount, stride);
+cout<<"level"<<levelCount<<endl;
+    DeepPyramid pyramid(model_file, trained_net_file,svm_file, svmSize, levelCount, stride);
+
+    vector<Rect> objects;
+    vector<float> confidence;
+
+    pyramid.detect(image, objects, confidence);
+
+    saveImageWithObjects("detectedObjects.jpg", image, objects);
 
     config.release();
 

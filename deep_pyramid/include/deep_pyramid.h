@@ -22,29 +22,12 @@
 #define OBJECT 1
 #define NOT_OBJECT -1
 
-class DeepPyramidConfiguration
-{
-private:
-    std::string model_file;
-    std::string trained_net_file;
-
-    int numLevels;
-
-    cv::Scalar objectRectangleColor;
-
-    std::string svm_trained_file;
-    cv::Size filterSize;
-
-    int stride;
-
-    DeepPyramidConfiguration(cv::FileStorage& configFile);
-
-    friend class DeepPyramid;
-};
 class DeepPyramid
 {
 public:
-    DeepPyramid(cv::FileStorage& configFile);
+    DeepPyramid(std::string model_file, std::string trained_net_file,
+                std::vector<std::string> svm_file, std::vector<cv::Size> svmSize,
+                int levelCount=7, int stride=1);
 
     ~DeepPyramid();
 
@@ -53,11 +36,8 @@ public:
     void constructFeatureMapPyramid(const cv::Mat& img, std::vector<FeatureMap>& maps) const;
     double levelScale;
     int  levelCount;
+    int stride;
 private:
-
-
-    DeepPyramidConfiguration config;
-
     std::vector<RootFilter> rootFilter;
 
     NeuralNetwork* net;

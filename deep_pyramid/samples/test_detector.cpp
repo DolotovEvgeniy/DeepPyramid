@@ -90,7 +90,14 @@ int main(int argc, char *argv[])
 
     TestConfiguration testConfig(config);
 
-    DeepPyramid pyramid(config);
+    string model_file, trained_net_file;
+    int numLevels;
+
+    vector<string> svm_file;
+    vector<Size> svmSize;
+    int stride;
+
+    DeepPyramid pyramid(model_file, trained_net_file,svm_file, svmSize, numLevels, stride);
 
     ifstream test_file(testConfig.test_file_path);
 

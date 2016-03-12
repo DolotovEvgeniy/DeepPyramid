@@ -162,8 +162,15 @@ int main(int argc, char *argv[])
                   << "' not found. Exiting." << std::endl;
         return ReturnCode::ConfigFileNotFound;
     }
+    string model_file, trained_net_file;
+    int numLevels;
 
-    DeepPyramid pyramid(config);
+    vector<string> svm_file;
+    vector<Size> svmSize;
+    int stride;
+
+    DeepPyramid pyramid(model_file, trained_net_file,svm_file, svmSize, numLevels, stride);
+
     TrainConfiguration trainConfig(config);
 
     FDDBContainer data;

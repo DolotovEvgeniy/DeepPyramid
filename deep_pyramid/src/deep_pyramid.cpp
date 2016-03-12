@@ -120,8 +120,6 @@ void DeepPyramid::detect(const Mat& img, vector<Rect>& detectedObjects, vector<f
     vector<FeatureMap> maps;
     constructFeatureMapPyramid(img, maps);
     cout<<img.cols<<","<<img.rows<<","<<rootFilter.size()<<endl;
-    //  cout<<"OOOOOOOOOOOOOOOOOOOOOOOOO"<<endl;
-    cout<<"filter"<<endl;
     vector<BoundingBox> objects;
     detect(maps, objects);
     cout<<"group rectangle"<<endl;
@@ -156,6 +154,27 @@ DeepPyramid::DeepPyramid(string model_file, string trained_net_file,
         classifier->load(svm_file[i].c_str());
         rootFilter.push_back(RootFilter(svmSize[i], classifier));
     }
+}
+
+void DeepPyramid::detect(const Mat &img, vector<BoundingBox> &objects, bool isBoundingBoxRegressor) const
+{
+    CV_Assert(img.channels()==3);
+    vector<FeatureMap> maps;
+    constructFeatureMapPyramid(img, maps);
+    cout<<"filter"<<endl;
+    detect(maps, objects);
+    cout<<"group rectangle"<<endl;
+    calculateOriginalRectangle(objects, Size(img.cols, img.rows));
+    groupRectangle(objects);
+    if(isBoundingBoxRegressor)
+    {
+        cout<<"boundbox regressor: TODO"<<endl;
+    }
+    else
+    {
+        cout<<"bounding box regressor switch off"<<endl;
+    }
+    cout<<"Object count:"<<objects.size()<<endl;
 }
 
 DeepPyramid::~DeepPyramid()

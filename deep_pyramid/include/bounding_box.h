@@ -5,6 +5,8 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
+#include "feature_map.h"
+
 class BoundingBox
 {
 public:
@@ -12,7 +14,7 @@ public:
     int level;
     cv::Rect norm5Box;
     cv::Rect originalImageBox;
-
+    FeatureMap map;
     bool operator<(BoundingBox object)
     {
         return confidence<object.confidence;

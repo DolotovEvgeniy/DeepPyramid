@@ -10,6 +10,7 @@ Point getRectangleCenter(const Rect &rect)
 
 Rect makeRectangle(const Point& center, const int& width, const int& height)
 {
+    CV_Assert(width>0 && height>0);
     return Rect(center.x-width/2.0, center.y-height/2.0, width, height);
 }
 
@@ -22,15 +23,17 @@ double IOU(const Rect& rect1, const Rect& rect2)
 
 Rect avg_rect(const vector<Rect>& rectangles)
 {
+    CV_Assert(rectangles.size()>0);
+
     Rect resultRect;
 
     double sumOfX=0,sumOfY=0,sumOfWidth=0, sumOfHeight=0;
-    for(vector<Rect>::const_iterator rectangle=rectangles.begin(); rectangle!=rectangles.end(); rectangle++)
+    for(unsigned int i=0; i<rectangles.size(); i++)
     {
-        sumOfX+=rectangle->x;
-        sumOfY+=rectangle->y;
-        sumOfWidth+=rectangle->width;
-        sumOfHeight+=rectangle->height;
+        sumOfX+=rectangles[i].x;
+        sumOfY+=rectangles[i].y;
+        sumOfWidth+=rectangles[i].width;
+        sumOfHeight+=rectangles[i].height;
     }
     int n=rectangles.size();
     resultRect.x=sumOfX/n;
@@ -54,6 +57,7 @@ Rect intersectRectangles(const vector<Rect>& rectangles)
 
 Rect scaleRect(Rect rect, double scale)
 {
+    CV_Assert(scale>0);
     rect.x*=scale;
     rect.y*=scale;
     rect.width*=scale;

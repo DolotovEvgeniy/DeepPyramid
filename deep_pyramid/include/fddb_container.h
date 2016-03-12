@@ -17,7 +17,8 @@ public:
     FDDBContainer() {}
     void load(std::string fddb_file, std::string image_prefix="");
     void save(std::string fddb_file);
-    void add(const std::string image_path, const std::vector<BoundingBox> boxes);
+    void add(const std::string image_path, const std::vector<cv::Rect>& boxes,
+             const std::vector<float>& confidence);
     void next(cv::Mat& img, std::vector<cv::Rect>& objects, std::vector<float>& confidence);
 private:
     std::vector<std::string> imagesPath;

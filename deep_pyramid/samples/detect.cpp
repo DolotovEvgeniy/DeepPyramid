@@ -73,14 +73,16 @@ int main(int argc, char *argv[])
 
     DeepPyramid pyramid(config);
 
-    vector<BoundingBox> objects;
-    pyramid.detect(image, objects);
+    vector<Rect> objects;
+    vector<float> confidence;
+
+    pyramid.detect(image, objects, confidence);
 
     Mat imageWithObjects;
     image.copyTo(imageWithObjects);
     for(unsigned int i=0; i<objects.size();i++)
     {
-        rectangle(imageWithObjects, objects[i].originalImageBox, Scalar(0,255,0));
+        rectangle(imageWithObjects, objects[i], Scalar(0,255,0));
     }
     imwrite(imageFileName+"_res.jpg", imageWithObjects);
 

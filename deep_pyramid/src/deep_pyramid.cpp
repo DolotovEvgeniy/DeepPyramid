@@ -114,12 +114,13 @@ void DeepPyramid::groupRectangle(vector<BoundingBox>& detectedObjects) const
     nms.processBondingBox(detectedObjects,0.2,0.7);
 }
 
-void DeepPyramid::detect(const Mat& img, vector<BoundingBox>& objects, bool isBoundingBoxRegressor) const
+void DeepPyramid::detect(const Mat& img, vector<Rect>& detectedObjects, vector<float>& confidence, bool isBoundingBoxRegressor) const
 {
     CV_Assert(img.channels()==3);
     vector<FeatureMap> maps;
     constructFeatureMapPyramid(img, maps);
     cout<<"filter"<<endl;
+    vector<BoundingBox> objects;
     detect(maps, objects);
     cout<<"group rectangle"<<endl;
     calculateOriginalRectangle(objects, Size(img.cols, img.rows));
@@ -133,6 +134,11 @@ void DeepPyramid::detect(const Mat& img, vector<BoundingBox>& objects, bool isBo
         cout<<"bounding box regressor switch off"<<endl;
     }
     cout<<"Object count:"<<objects.size()<<endl;
+    for(int i=0;i<objects.size();i++)
+    {
+        detectedObjects.push_back(objects[i].originalImageBox);
+        confidence.push_back(objects[i].confidence);
+    }
 }
 
 DeepPyramid::DeepPyramid(FileStorage& configFile) : config(configFile)

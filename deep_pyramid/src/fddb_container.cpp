@@ -103,16 +103,11 @@ void FDDBContainer::next(Mat& img, vector<Rect>& objects, vector<float>& confide
     increaseCounter();
 }
 
-void FDDBContainer::add(const string image_path, const vector<BoundingBox> boxes)
+void FDDBContainer::add(const string image_path, const vector<Rect>& objects,
+                        const vector<float>& confidence)
 {
     imagesPath.push_back(image_path);
-    vector<Rect> objects;
-    vector<float> confidence;
-    for(int i=0; i<boxes.size();i++)
-    {
-        objects.push_back(boxes[i].originalImageBox);
-        confidence.push_back(boxes[i].confidence);
-    }
+
     objectsList.push_back(objects);
     confidenceList.push_back(confidence);
 }

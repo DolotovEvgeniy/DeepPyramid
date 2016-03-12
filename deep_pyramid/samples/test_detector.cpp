@@ -58,12 +58,12 @@ public:
 
 };
 
-void drawObjects(const Mat& src, Mat& dst, const vector<BoundingBox>& objects)
+void drawObjects(const Mat& src, Mat& dst, const vector<Rect>& objects)
 {
     src.copyTo(dst);
     for(unsigned int i=0; i<objects.size();i++)
     {
-        rectangle(dst, objects[i].originalImageBox, Scalar(0,255,0));
+        rectangle(dst, objects[i], Scalar(0,255,0));
     }
 }
 
@@ -116,10 +116,11 @@ int main(int argc, char *argv[])
             return ReturnCode::ImageFileNotFound;
         }
 
-        vector<BoundingBox> objects;
-        pyramid.detect(image, objects);
+        vector<Rect> objects;
+        vector<float> confidence;
+        pyramid.detect(image, objects, confidence);
 
-        data.add(testConfig.test_image_folder+img_path+".jpg", objects);
+        data.add(testConfig.test_image_folder+img_path+".jpg", objects, confidence);
 
         if(testConfig.saveImage)
         {

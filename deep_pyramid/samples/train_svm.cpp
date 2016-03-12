@@ -141,6 +141,38 @@ void extractFeatureVectors(const Mat& img, const Size& filterSize, const vector<
         labels.push_back(OBJECT);
     }
 }
+void deleteEasyExamples(CvSVM* svm, Mat& features, Mat& labels)
+{
+    Mat featuresWithOutEasy;
+    Mat labelsWithOutEasy;
+    for(int i=0;i<features.rows;i++)
+    {
+        if(labels.at<int>(i,0)==OBJECT || svm->predict(features.row(i))!=labels.at<int>(i,0))
+        {
+            featuresWithOutEasy.push_back(features.row(i));
+            labelsWithOutEasy.push_back(labels.at<int>(i,0));
+        }
+        else
+        {
+            if(fabs(svm->predict(features.row(i), true))<MARGIN_THRESHOLD)
+            {
+                featuresWithOutEasy.push_back(features.row(i));
+                labelsWithOutEasy.push_back(labels.at<int>(i,0));
+            }
+        }
+    }
+    featuresWithOutEasy.copyTo(features);
+    labelsWithOutEasy.copyTo(labels);
+
+    featuresWithOutEasy.release();
+    labelsWithOutEasy.release();
+}
+
+void addNewHardExamples(CvSVM* svm, Mat& features, Mat& labels, const Mat& image,
+                        const vector<Rect> objects)
+{
+
+}
 
 int main(int argc, char *argv[])
 {
@@ -198,30 +230,7 @@ int main(int argc, char *argv[])
 
     for(int i=0;i<trainConfig.bootStrapTrainIter;i++)
     {
-
-        Mat featuresWithOutEasy;
-        Mat labelsWithOutEasy;
-        for(int i=0;i<features.rows;i++)
-        {
-            if(labels.at<int>(i,0)==OBJECT || svm->predict(features.row(i))!=labels.at<int>(i,0))
-            {
-                featuresWithOutEasy.push_back(features.row(i));
-                labelsWithOutEasy.push_back(labels.at<int>(i,0));
-            }
-            else
-            {
-                if(fabs(svm->predict(features.row(i), true))<MARGIN_THRESHOLD)
-                {
-                    featuresWithOutEasy.push_back(features.row(i));
-                    labelsWithOutEasy.push_back(labels.at<int>(i,0));
-                }
-            }
-        }
-        featuresWithOutEasy.copyTo(features);
-        labelsWithOutEasy.copyTo(labels);
-
-        featuresWithOutEasy.release();
-        labelsWithOutEasy.release();
+        deleteEasyExamples(svm, features, labels);
 
 
         Mat newFeatures;

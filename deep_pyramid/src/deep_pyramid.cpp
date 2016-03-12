@@ -114,7 +114,7 @@ void DeepPyramid::groupRectangle(vector<BoundingBox>& detectedObjects) const
     nms.processBondingBox(detectedObjects,0.2,0.7);
 }
 
-void DeepPyramid::detect(const Mat& img, vector<BoundingBox>& objects) const
+void DeepPyramid::detect(const Mat& img, vector<BoundingBox>& objects, bool isBoundingBoxRegressor) const
 {
     CV_Assert(img.channels()==3);
     vector<FeatureMap> maps;
@@ -124,7 +124,14 @@ void DeepPyramid::detect(const Mat& img, vector<BoundingBox>& objects) const
     cout<<"group rectangle"<<endl;
     calculateOriginalRectangle(objects, Size(img.cols, img.rows));
     groupRectangle(objects);
+    if(isBoundingBoxRegressor)
+    {
     cout<<"boundbox regressor: TODO"<<endl;
+    }
+    else
+    {
+        cout<<"bounding box regressor switch off"<<endl;
+    }
     cout<<"Object count:"<<objects.size()<<endl;
 }
 

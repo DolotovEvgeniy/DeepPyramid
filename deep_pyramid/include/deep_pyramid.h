@@ -48,7 +48,7 @@ public:
 
     ~DeepPyramid();
 
-    void detect(const cv::Mat& img, std::vector<BoundingBox>& objects) const;
+    void detect(const cv::Mat& img, std::vector<BoundingBox>& objects, bool isBoundingBoxRegressor=true) const;
 
     void constructFeatureMapPyramid(const cv::Mat& img, std::vector<FeatureMap>& maps) const;
     double levelScale;

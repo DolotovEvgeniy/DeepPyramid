@@ -20,7 +20,7 @@ public:
     void add(const std::string image_path, const std::vector<cv::Rect>& boxes,
              const std::vector<float>& confidence);
     void next(cv::Mat& img, std::vector<cv::Rect>& objects, std::vector<float>& confidence);
-    void next(cv::Mat& img);
+    void next(cv::Mat& img, std::string& imagePath);
     int size();
 private:
     std::vector<std::string> imagesPath;

@@ -104,11 +104,11 @@ int main(int argc, char *argv[])
 
     FDDBContainer resultData;
 
-    string img_path;
     for(int i=0;i<testData.size();i++)
     {
         Mat image;
-        testData.next(image);
+        string img_path;
+        testData.next(image, img_path);
 
         vector<Rect> objects;
         vector<float> confidence;

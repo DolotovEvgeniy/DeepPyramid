@@ -99,9 +99,10 @@ void FDDBContainer::next(Mat& img, vector<Rect>& objects, vector<float>& confide
     increaseCounter();
 }
 
-void FDDBContainer::next(Mat& img)
+void FDDBContainer::next(Mat& img, string& imagePath)
 {
     img=imread(imagesPath[counter]);
+    imagePath=imagesPath[counter];
     increaseCounter();
 }
 

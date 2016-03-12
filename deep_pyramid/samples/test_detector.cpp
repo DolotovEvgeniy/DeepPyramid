@@ -33,41 +33,7 @@ enum
     OutputFileNotCreated = 5
 };
 };
-
-class TestConfiguration
-{
-public:
-    string test_file_path;
-
-    string output_file_path;
-
-    string test_image_folder;
-
-    string result_image_folder;
-
-    bool saveImage;
-
-    TestConfiguration(FileStorage& config)
-    {
-        config["FileWithTestImage"]>>test_file_path;
-        config["OutputFile"]>>output_file_path;
-        config["TestImageFolder"]>>test_image_folder;
-        config["TestImageResultFolder"]>>result_image_folder;
-        config["SaveTestImageResult"]>>saveImage;
-    }
-
-};
-
-void drawObjects(const Mat& src, Mat& dst, const vector<Rect>& objects)
-{
-    src.copyTo(dst);
-    for(unsigned int i=0; i<objects.size();i++)
-    {
-        rectangle(dst, objects[i], Scalar(0,255,0));
-    }
-}
-
-int main(int argc, char *argv[])
+int parseCommandLine(int argc, char *argv[], FileStorage& config)
 {
     cv::CommandLineParser parser(argc, argv, argsDefs);
     string configFileName = parser.get<std::string>("config");
@@ -79,7 +45,7 @@ int main(int argc, char *argv[])
         return ReturnCode::ConfigFileNotSpecified;
     }
 
-    FileStorage config(configFileName, FileStorage::READ);
+    config.open(configFileName, FileStorage::READ);
 
     if(config.isOpened()==false)
     {
@@ -88,63 +54,70 @@ int main(int argc, char *argv[])
         return ReturnCode::ConfigFileNotFound;
     }
 
-    TestConfiguration testConfig(config);
+    return ReturnCode::Success;
+}
+
+void readConfig(const FileStorage& config, string& model_file, string& trained_net_file,
+                vector<string>& svm_file, vector<Size>& svmSize, int& levelCount, int& stride,
+                string test_file, string image_folder, string output_file)
+{
+    config["NeuralNetwork-configuration"]>>model_file;
+    config["NeuralNetwork-trained-model"]>>trained_net_file;
+    config["NumberOfLevel"]>>levelCount;
+
+    config["Stride"]>>stride;
+
+    string svm_trained_file;
+    config["SVM"]>>svm_trained_file;
+    svm_file.push_back(svm_trained_file);
+    Size filterSize;
+    config["Filter-size"]>>filterSize;
+    svmSize.push_back(filterSize);
+
+    config["FileWithTestImage"]>>test_file;
+    config["OutputFile"]>>output_file;
+    config["TestImageFolder"]>>image_folder;
+}
+
+int main(int argc, char *argv[])
+{
+    FileStorage config;
+
+    parseCommandLine(argc, argv, config);
 
     string model_file, trained_net_file;
-    int numLevels;
+    int levelCount;
 
     vector<string> svm_file;
     vector<Size> svmSize;
     int stride;
 
-    DeepPyramid pyramid(model_file, trained_net_file,svm_file, svmSize, numLevels, stride);
+    string test_file, image_folder, output_file;
 
-    ifstream test_file(testConfig.test_file_path);
+    readConfig(config, model_file, trained_net_file, svm_file, svmSize, levelCount, stride,
+               test_file, image_folder, output_file);
+    config.release();
 
-    if(test_file.is_open()==false)
-    {
-        std::cerr << "Test file '" << testConfig.test_file_path
-                  << "' not found. Exiting" << std::endl;
-        return ReturnCode::TestFileNotFound;
-    }
+    DeepPyramid pyramid(model_file, trained_net_file,svm_file, svmSize, levelCount, stride);
+    FDDBContainer testData;
+    testData.load(test_file, image_folder);
 
-    FDDBContainer data;
+    FDDBContainer resultData;
 
     string img_path;
-    while(test_file>>img_path)
+    for(int i=0;i<testData.size();i++)
     {
         Mat image;
-        image=imread(testConfig.test_image_folder+img_path+".jpg");
-
-        if(!image.data)
-        {
-            std::cerr << "File '" << testConfig.test_image_folder+img_path+".jpg"
-                      << "' not found. Exiting." << std::endl;
-            return ReturnCode::ImageFileNotFound;
-        }
+        testData.next(image);
 
         vector<Rect> objects;
         vector<float> confidence;
         pyramid.detect(image, objects, confidence);
 
-        data.add(testConfig.test_image_folder+img_path+".jpg", objects, confidence);
-
-        if(testConfig.saveImage)
-        {
-            Mat imageWithObjects;
-            drawObjects(image, imageWithObjects, objects);
-
-            imwrite(testConfig.result_image_folder+img_path+".jpg", imageWithObjects);
-
-            std::replace( img_path.begin(), img_path.end(), '/', '_');
-            cout<<"SAVE:"<<testConfig.result_image_folder+img_path+".jpg"<<endl;
-        }
+        resultData.add(image_folder+img_path+".jpg", objects, confidence);
     }
 
-    data.save(testConfig.output_file_path);
-
-    config.release();
-    test_file.close();
+    resultData.save(output_file);
 
     return ReturnCode::Success;
 }

@@ -28,11 +28,7 @@ Rect ellipseToRect(int major_axis_radius,int minor_axis_radius,double angle,int 
 Rect readEllipseToRect(istream& file)
 {
     double a, b, h, k, phi;
-    file>>a;
-    file>>b;
-    file>>phi;
-    file>>h;
-    file>>k;
+    file>>a>>b>>phi>>h>>k;
     int type;
     file>>type;
 
@@ -103,6 +99,12 @@ void FDDBContainer::next(Mat& img, vector<Rect>& objects, vector<float>& confide
     increaseCounter();
 }
 
+void FDDBContainer::next(Mat& img)
+{
+    img=imread(imagesPath[counter]);
+    increaseCounter();
+}
+
 void FDDBContainer::add(const string image_path, const vector<Rect>& objects,
                         const vector<float>& confidence)
 {
@@ -135,4 +137,9 @@ void FDDBContainer::save(string fddb_file)
             file<<confidenceList[i][j]<<endl;
         }
     }
+}
+
+int FDDBContainer::size()
+{
+    return imagesPath.size();
 }

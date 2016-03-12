@@ -71,17 +71,6 @@ int parseCommandLine(int argc, char *argv[], Mat& image, FileStorage& config)
     return ReturnCode::Success;
 }
 
-void saveImageWithObjects(string file_name, const Mat& image, const vector<Rect>& objects)
-{
-    Mat imageWithObjects;
-    image.copyTo(imageWithObjects);
-    for(unsigned int i=0; i<objects.size();i++)
-    {
-        rectangle(imageWithObjects, objects[i], Scalar(0,255,0));
-    }
-    imwrite(file_name, imageWithObjects);
-}
-
 void readConfig(const FileStorage& config, string& model_file, string& trained_net_file,
                 vector<string>& svm_file, vector<Size>& svmSize, int& levelCount, int& stride)
 {
@@ -97,6 +86,17 @@ void readConfig(const FileStorage& config, string& model_file, string& trained_n
     Size filterSize;
     config["Filter-size"]>>filterSize;
     svmSize.push_back(filterSize);
+}
+
+void saveImageWithObjects(string file_name, const Mat& image, const vector<Rect>& objects)
+{
+    Mat imageWithObjects;
+    image.copyTo(imageWithObjects);
+    for(unsigned int i=0; i<objects.size();i++)
+    {
+        rectangle(imageWithObjects, objects[i], Scalar(0,255,0));
+    }
+    imwrite(file_name, imageWithObjects);
 }
 
 int main(int argc, char *argv[])
@@ -119,7 +119,8 @@ int main(int argc, char *argv[])
     int stride;
 
     readConfig(config, model_file, trained_net_file, svm_file, svmSize, levelCount, stride);
-cout<<"level"<<levelCount<<endl;
+    config.release();
+
     DeepPyramid pyramid(model_file, trained_net_file,svm_file, svmSize, levelCount, stride);
 
     vector<Rect> objects;
@@ -129,7 +130,6 @@ cout<<"level"<<levelCount<<endl;
 
     saveImageWithObjects("detectedObjects.jpg", image, objects);
 
-    config.release();
 
     return ReturnCode::Success;
 }

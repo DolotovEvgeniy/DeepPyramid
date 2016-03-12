@@ -15,7 +15,7 @@ public:
     void save(const std::string filename);
     void load(const std::string filename);
 
-    void regress(std::vector<BoundingBox>& objects, const std::vector<cv::Mat>& features);
+    void processBoundingBoxes(std::vector<BoundingBox>& objects, const std::vector<cv::Mat>& features);
 private:
 
     void regressBox(BoundingBox& object,const cv::Mat& feature);

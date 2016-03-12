@@ -7,6 +7,8 @@
 #include <string>
 
 #include <deep_pyramid.h>
+#include <fddb_container.h>
+
 using namespace cv;
 using namespace std;
 using namespace caffe;
@@ -56,26 +58,12 @@ public:
 
 };
 
-void writeDetectionResultInFile(ofstream& file, const string& img_path, const vector<BoundingBox> & objects)
-{
-    file<<img_path<<endl;
-    file<<objects.size()<<endl;
-    for(unsigned int i=0;i<objects.size();i++)
-    {
-        file<<objects[i].originalImageBox.x<<" ";
-        file<<objects[i].originalImageBox.y<<" ";
-        file<<objects[i].originalImageBox.width<<" ";
-        file<<objects[i].originalImageBox.height<<" ";
-        file<<objects[i].confidence<<endl;
-    }
-}
-
-void drawObjects(const Mat& src, Mat& dst, const vector<BoundingBox>& objects)
+void drawObjects(const Mat& src, Mat& dst, const vector<Rect>& objects)
 {
     src.copyTo(dst);
     for(unsigned int i=0; i<objects.size();i++)
     {
-        rectangle(dst, objects[i].originalImageBox, Scalar(0,255,0));
+        rectangle(dst, objects[i], Scalar(0,255,0));
     }
 }
 
@@ -113,14 +101,7 @@ int main(int argc, char *argv[])
         return ReturnCode::TestFileNotFound;
     }
 
-    ofstream output_file(testConfig.output_file_path);
-
-    if(output_file.is_open()==false)
-    {
-        std::cerr << "Output file '" << testConfig.output_file_path
-                  << "' not created. Exiting" << std::endl;
-        return ReturnCode::OutputFileNotCreated;
-    }
+    FDDBContainer data;
 
     string img_path;
     while(test_file>>img_path)
@@ -135,10 +116,11 @@ int main(int argc, char *argv[])
             return ReturnCode::ImageFileNotFound;
         }
 
-        vector<BoundingBox> objects;
-        pyramid.detect(image, objects);
+        vector<Rect> objects;
+        vector<float> confidence;
+        pyramid.detect(image, objects, confidence);
 
-        writeDetectionResultInFile(output_file, img_path, objects);
+        data.add(testConfig.test_image_folder+img_path+".jpg", objects, confidence);
 
         if(testConfig.saveImage)
         {
@@ -152,9 +134,10 @@ int main(int argc, char *argv[])
         }
     }
 
+    data.save(testConfig.output_file_path);
+
     config.release();
     test_file.close();
-    output_file.close();
 
     return ReturnCode::Success;
 }

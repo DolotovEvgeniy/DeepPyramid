@@ -3,8 +3,7 @@
 using namespace std;
 using namespace cv;
 
-void RootFilter::processFeatureMap(const FeatureMap &map, vector<Rect> &detectedRect,
-                                   vector<double>& confidence, int stride) const
+void RootFilter::processFeatureMap(const FeatureMap &map, vector<BoundingBox> &detectedObjects, int stride) const
 {
     Size mapSize=map.size();
     for(int width=0; width<mapSize.width-filterSize.width; width+=stride)
@@ -15,8 +14,11 @@ void RootFilter::processFeatureMap(const FeatureMap &map, vector<Rect> &detected
             map.extractFeatureMap(Rect(Point(width, height), filterSize), extractedMap);
             if(((int)classify(extractedMap))==OBJECT)
             {
-                detectedRect.push_back(Rect(Point(width, height), filterSize));
-                confidence.push_back(std::fabs(classify(extractedMap, true)));
+                BoundingBox box;
+                box.norm5Box=Rect(Point(width, height), filterSize);
+                box.confidence=std::fabs(classify(extractedMap, true));
+                box.map=extractedMap;
+                detectedObjects.push_back(box);
             }
         }
     }

@@ -9,7 +9,7 @@
 #include <vector>
 
 #include "feature_map.h"
-
+#include "bounding_box.h"
 #define OBJECT 1
 #define NOT_OBJECT -1
 
@@ -17,8 +17,7 @@ class RootFilter
 {
 public:
     RootFilter(cv::Size filterSize, CvSVM* svm);
-    void processFeatureMap(const FeatureMap& map, std::vector<cv::Rect>& detectedRect,
-                           std::vector<double>& confidence, int stride=1) const;
+    void processFeatureMap(const FeatureMap& map, std::vector<BoundingBox>& detectedObjects, int stride=1) const;
 private:
     cv::Size filterSize;
     CvSVM* svm;

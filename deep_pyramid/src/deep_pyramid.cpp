@@ -80,16 +80,13 @@ void DeepPyramid::detect(const vector<FeatureMap>& maps, vector<BoundingBox>& de
     for(unsigned int i=0;i<rootFilter.size();i++)
         for(unsigned int j=0;j<maps.size();j++)
         {
-            std::vector<cv::Rect> detectedRect;
-            std::vector<double> confidence;
-            rootFilter[i].processFeatureMap(maps[j], detectedRect, confidence, stride);
-            for(unsigned int k=0;k<detectedRect.size();k++)
+            vector<BoundingBox> detectedObjectsAtLevel;
+
+            rootFilter[i].processFeatureMap(maps[j], detectedObjectsAtLevel, stride);
+            for(unsigned int k=0;k<detectedObjectsAtLevel.size();k++)
             {
-                BoundingBox object;
-                object.confidence=confidence[k];
-                object.level=j;
-                object.norm5Box=detectedRect[k];
-                detectedObjects.push_back(object);
+                detectedObjectsAtLevel[k].level=j;
+                detectedObjects.push_back(detectedObjectsAtLevel[k]);
             }
         }
 }

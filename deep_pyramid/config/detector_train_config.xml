@@ -1,0 +1,74 @@
+<?xml version="1.0"?>
+<opencv_storage>
+
+<!-- Number of level in deep pyramid model -->
+<NumberOfLevel>
+7
+</NumberOfLevel>
+
+<!--Path to neural network(.prototxt)-->
+<NeuralNetwork-configuration>
+supervisionCNN.prototxt
+</NeuralNetwork-configuration>
+
+<!--Path to neural network trained model(.caffemodel)-->
+<NeuralNetwork-trained-model>
+bvlc_alexnet.caffemodel
+</NeuralNetwork-trained-model>
+
+<!--Path to trained SVM(.xml)-->
+<SVM>
+linear_svm.xml
+</SVM>
+
+<Stride>
+1
+</Stride>
+<!-- Size of sliding window (width x height)-->
+<Filter-size>
+  7 11
+</Filter-size>
+
+<!-- ONLY FOR TRAIN MODE -->
+
+<!-- File contained name of train image -->
+<FileWithTrainImage>
+/home/dolotov_e/FDDB/FDDB-folds/FDDB-fold-01-ellipseList.txt
+</FileWithTrainImage>
+
+<!-- Folder with test image -->
+<TrainImageFolder>
+/home/dolotov_e/FDDB/
+</TrainImageFolder>
+
+<!-- Size of sliding window (width x height)-->
+<TrainFilter-size>
+  7 11
+</TrainFilter-size>
+
+<StartSVMTrainIter>
+30
+</StartSVMTrainIter>
+
+<HardNegTrainIter>
+0
+</HardNegTrainIter>
+
+<SampleMaxCount>
+60000
+</SampleMaxCount>
+
+<SVMKernelType>
+POLY
+</SVMKernelType>
+
+
+<SVMDegree>
+3
+</SVMDegree>
+
+<SVMSaveName>
+linear_svm
+</SVMSaveName>
+
+</opencv_storage>

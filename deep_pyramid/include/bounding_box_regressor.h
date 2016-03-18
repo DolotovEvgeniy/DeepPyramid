@@ -15,10 +15,10 @@ public:
     void save(const std::string filename);
     void load(const std::string filename);
 
-    void processBoundingBoxes(std::vector<BoundingBox>& objects, const std::vector<cv::Mat>& features);
+    void processBoundingBoxes(std::vector<BoundingBox>& objects);
 private:
 
-    void regressBox(BoundingBox& object,const cv::Mat& feature);
+    void regressBox(BoundingBox& object);
     cv::Mat xWeights;
     cv::Mat yWeights;
     cv::Mat widthWeights;

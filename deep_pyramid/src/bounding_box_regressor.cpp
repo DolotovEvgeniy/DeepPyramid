@@ -9,11 +9,11 @@
 using namespace std;
 using namespace cv;
 
-void BoundingBoxRegressor::processBoundingBoxes(vector<BoundingBox> &objects, const vector<Mat> &features)
+void BoundingBoxRegressor::processBoundingBoxes(vector<BoundingBox> &objects)
 {
     for(unsigned int i=0;i<objects.size();i++)
     {
-        regressBox(objects[i], features[i]);
+        regressBox(objects[i]);
     }
 }
 
@@ -22,11 +22,14 @@ double matToScalar(const Mat& mat)
     return mat.at<double>(0, 0);
 }
 
-void BoundingBoxRegressor::regressBox(BoundingBox& object, const Mat &feature)
+void BoundingBoxRegressor::regressBox(BoundingBox& object)
 {
     Rect rect=object.originalImageBox;
 
     Point rectCenter=getRectangleCenter(rect);
+
+    Mat feature;
+    object.map.reshapeToVector(feature);
 
     Point newRectCenter;
     newRectCenter.x=rect.width*matToScalar(xWeights*feature)+rectCenter.x;

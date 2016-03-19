@@ -55,7 +55,7 @@ void DeepPyramid::constructImagePyramid(const Mat& img, vector<Mat>& imgPyramid)
         resizedImg.copyTo(imgAtLevel(Rect(Point(0,0),resizedImgSize)));
         imgPyramid.push_back(imgAtLevel);
     }
-    cout<<"Create image pyramid..."<<endl;
+    cout<<"Construct image pyramid..."<<endl;
     cout<<"Status: Success!"<<endl;
 }
 //
@@ -67,10 +67,12 @@ void DeepPyramid::constructFeatureMapPyramid(const Mat& img, vector<FeatureMap>&
     constructImagePyramid(img, imgPyramid);
     for(int i=0; i<levelCount; i++)
     {
+        cout<<"Construct feature map ["<<i+1<<"] ..."<<endl;
         FeatureMap map;
         net->processImage(imgPyramid[i], map);
         map.normalize();
         maps.push_back(map);
+        cout<<"Status: Success!"<<endl;
     }
 }
 //
@@ -111,46 +113,46 @@ void DeepPyramid::groupRectangle(vector<BoundingBox>& detectedObjects) const
     nms.processBondingBox(detectedObjects,0.2,0.7);
 }
 
-void DeepPyramid::detect(const Mat& img, vector<Rect>& detectedObjects, vector<float>& confidence, bool isBoundingBoxRegressor) const
+DeepPyramid::DeepPyramid(string config)
 {
-    CV_Assert(img.channels()==3);
-    vector<FeatureMap> maps;
-    constructFeatureMapPyramid(img, maps);
-    cout<<img.cols<<","<<img.rows<<","<<rootFilter.size()<<endl;
-    vector<BoundingBox> objects;
-    detect(maps, objects);
-    cout<<"group rectangle"<<endl;
-    calculateOriginalRectangle(objects, Size(img.cols, img.rows));
-    groupRectangle(objects);
-    if(isBoundingBoxRegressor)
-    {
-        cout<<"boundbox regressor: TODO"<<endl;
-    }
-    else
-    {
-        cout<<"bounding box regressor switch off"<<endl;
-    }
-    cout<<"Object count:"<<objects.size()<<endl;
-    for(unsigned int i=0;i<objects.size();i++)
-    {
-        detectedObjects.push_back(objects[i].originalImageBox);
-        confidence.push_back(objects[i].confidence);
-    }
+    load(config);
 }
-
-DeepPyramid::DeepPyramid(string model_file, string trained_net_file,
-                         vector<string> svm_file, vector<Size> svmSize,
-                         int _levelCount, int _stride)
+void DeepPyramid::load(string config_file)
 {
-    net=new NeuralNetwork(model_file, trained_net_file);
-    levelCount=_levelCount;
-    stride=_stride;
-    for(unsigned int i=0;i<svm_file.size();i++)
+    FileStorage config;
+
+    config.open(config_file, FileStorage::READ);
+
+    if(config.isOpened()==false)
     {
-        CvSVM* classifier=new CvSVM();
-        classifier->load(svm_file[i].c_str());
-        rootFilter.push_back(RootFilter(svmSize[i], classifier));
+        std::cerr << "File '" << config_file
+                  << "' not found. Exiting." << std::endl;
+        return;
     }
+
+    string model_file, trained_net_file;
+
+    config["NeuralNetwork-configuration"]>>model_file;
+    config["NeuralNetwork-trained-model"]>>trained_net_file;
+
+    net=new NeuralNetwork(model_file, trained_net_file);
+
+    config["NumberOfLevel"]>>levelCount;
+
+    config["Stride"]>>stride;
+
+    string svm_trained_file;
+    config["SVM"]>>svm_trained_file;
+
+    Size filterSize;
+    config["Filter-size"]>>filterSize;
+
+    CvSVM* classifier=new CvSVM();
+    classifier->load(svm_trained_file.c_str());
+    rootFilter.push_back(RootFilter(filterSize, classifier));
+
+    //config["BoundingBox-regressor"]>>box_regressor_file;
+    //TODO
 }
 
 void DeepPyramid::detect(const Mat &img, vector<BoundingBox> &objects, bool isBoundingBoxRegressor) const

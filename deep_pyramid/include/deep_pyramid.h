@@ -25,13 +25,11 @@
 class DeepPyramid
 {
 public:
-    DeepPyramid(std::string model_file, std::string trained_net_file,
-                std::vector<std::string> svm_file, std::vector<cv::Size> svmSize,
-                int levelCount=7, int stride=1);
-
+    DeepPyramid(){}
+    DeepPyramid(std::string config);
+    void load(std::string config);
     ~DeepPyramid();
 
-    void detect(const cv::Mat& img, std::vector<cv::Rect>& objects, std::vector<float>& confidence, bool isBoundingBoxRegressor=true) const;
     void detect(const cv::Mat& img, std::vector<BoundingBox>& objects, bool isBoundingBoxRegressor=true) const;
     void constructFeatureMapPyramid(const cv::Mat& img, std::vector<FeatureMap>& maps) const;
     double levelScale;

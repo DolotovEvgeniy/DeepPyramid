@@ -43,3 +43,23 @@ void BoundingBoxRegressor::regressBox(BoundingBox& object)
 
     object.originalImageBox=newRect;
 }
+
+void BoundingBoxRegressor::load(const string file_name)
+{
+    FileStorage regressor;
+    regressor.open(file_name, FileStorage::READ);
+    regressor["xWeight"]>>xWeights;
+    regressor["yWeight"]>>yWeights;
+    regressor["widthWeight"]>>widthWeights;
+    regressor["heightWeight"]>>heightWeights;
+}
+
+void BoundingBoxRegressor::save(const string file_name)
+{
+    FileStorage regressor;
+    regressor.open(file_name, FileStorage::WRITE);
+    regressor<<"xWeight"<<xWeights;
+    regressor<<"yWeight"<<yWeights;
+    regressor<<"widthWeight"<<widthWeights;
+    regressor<<"heightWeight"<<heightWeights;
+}

@@ -33,7 +33,7 @@ enum
     OutputFileNotCreated = 5
 };
 };
-int parseCommandLine(int argc, char *argv[], FileStorage& config)
+int parseCommandLine(int argc, char *argv[], string& config_file)
 {
     cv::CommandLineParser parser(argc, argv, argsDefs);
     string configFileName = parser.get<std::string>("config");
@@ -45,20 +45,13 @@ int parseCommandLine(int argc, char *argv[], FileStorage& config)
         return ReturnCode::ConfigFileNotSpecified;
     }
 
-    config.open(configFileName, FileStorage::READ);
-
-    if(config.isOpened()==false)
-    {
-        std::cerr << "File '" << configFileName
-                  << "' not found. Exiting." << std::endl;
-        return ReturnCode::ConfigFileNotFound;
-    }
+    config_file=configFileName;
 
     return ReturnCode::Success;
 }
 
 void readConfig(const FileStorage& config, string& model_file, string& trained_net_file,
-                vector<string>& svm_file, vector<Size>& svmSize, int& levelCount, int& stride,
+                vector<string>& svm_file, vector<Size>& svmSize,string& box_regressor_file, int& levelCount, int& stride,
                 string test_file, string image_folder, string output_file)
 {
     config["NeuralNetwork-configuration"]>>model_file;
@@ -81,24 +74,14 @@ void readConfig(const FileStorage& config, string& model_file, string& trained_n
 
 int main(int argc, char *argv[])
 {
-    FileStorage config;
+    string config;
 
     parseCommandLine(argc, argv, config);
 
-    string model_file, trained_net_file;
-    int levelCount;
-
-    vector<string> svm_file;
-    vector<Size> svmSize;
-    int stride;
-
     string test_file, image_folder, output_file;
 
-    readConfig(config, model_file, trained_net_file, svm_file, svmSize, levelCount, stride,
-               test_file, image_folder, output_file);
-    config.release();
+    DeepPyramid pyramid(config);
 
-    DeepPyramid pyramid(model_file, trained_net_file,svm_file, svmSize, levelCount, stride);
     FDDBContainer testData;
     testData.load(test_file, image_folder);
 
@@ -108,13 +91,21 @@ int main(int argc, char *argv[])
     {
         Mat image;
         string img_path;
+
         testData.next(image, img_path);
 
-        vector<Rect> objects;
-        vector<float> confidence;
-        pyramid.detect(image, objects, confidence);
+        vector<BoundingBox> objects;
+        pyramid.detect(image, objects);
 
-        resultData.add(image_folder+img_path+".jpg", objects, confidence);
+        vector<Rect> rectangles;
+        vector<float> confidence;
+        for(unsigned int i=0;i<objects.size();i++)
+        {
+            rectangles.push_back(objects[i].originalImageBox);
+
+            confidence.push_back(objects[i].confidence);
+        }
+        resultData.add(image_folder+img_path+".jpg", rectangles, confidence);
     }
 
     resultData.save(output_file);

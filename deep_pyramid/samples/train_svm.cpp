@@ -176,7 +176,7 @@ void addNewHardExamples(CvSVM* svm, Mat& features, Mat& labels, const Mat& image
 
 int main(int argc, char *argv[])
 {
-    CommandLineParser parser(argc, argv, argsDefs);
+/*    CommandLineParser parser(argc, argv, argsDefs);
     string configFileName = parser.get<std::string>("config");
 
     if (configFileName.empty() == true)
@@ -268,6 +268,6 @@ int main(int argc, char *argv[])
 
     config.release();
 
-    delete svm;
+    delete svm;*/
     return ReturnCode::Success;
 }

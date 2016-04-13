@@ -74,17 +74,16 @@ int parseCommandLine(int argc, char *argv[], Mat& image, FileStorage& config)
 void readConfig(const FileStorage& config, string& model_file, string& trained_net_file,
                 vector<string>& svm_file, vector<Size>& svmSize, int& levelCount, int& stride)
 {
-    config["NeuralNetwork-configuration"]>>model_file;
-    config["NeuralNetwork-trained-model"]>>trained_net_file;
-    config["NumberOfLevel"]>>levelCount;
-
-    config["Stride"]>>stride;
+    config["net"]>>model_file;
+    config["weights"]>>trained_net_file;
+    config["number_of_levels"]>>levelCount;
 
     string svm_trained_file;
-    config["SVM"]>>svm_trained_file;
+    config["svm"]>>svm_trained_file;
     svm_file.push_back(svm_trained_file);
     Size filterSize;
-    config["Filter-size"]>>filterSize;
+    config["filter_size"]>>filterSize;
+    config["stride"]>>stride;
     svmSize.push_back(filterSize);
 }
 

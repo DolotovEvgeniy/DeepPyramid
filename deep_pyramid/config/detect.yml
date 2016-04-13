@@ -1,0 +1,7 @@
+%YAML:1.0
+net: "supervisionCNN.prototxt"
+weights: "bvlc_alexnet.caffemodel"
+numer_of_levels: 7
+svm: "linear_svm.xml"
+filter_size: [ 7, 11 ]
+stride: 1

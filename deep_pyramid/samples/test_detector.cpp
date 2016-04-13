@@ -61,22 +61,20 @@ void readConfig(const FileStorage& config, string& model_file, string& trained_n
                 vector<string>& svm_file, vector<Size>& svmSize, int& levelCount, int& stride,
                 string test_file, string image_folder, string output_file)
 {
-    config["NeuralNetwork-configuration"]>>model_file;
-    config["NeuralNetwork-trained-model"]>>trained_net_file;
-    config["NumberOfLevel"]>>levelCount;
-
-    config["Stride"]>>stride;
-
+    config["net"]>>model_file;
+    config["weights"]>>trained_net_file;
+    config["number_of_levels"]>>levelCount;
     string svm_trained_file;
-    config["SVM"]>>svm_trained_file;
+    config["svm"]>>svm_trained_file;
     svm_file.push_back(svm_trained_file);
     Size filterSize;
-    config["Filter-size"]>>filterSize;
+    config["filter_size"]>>filterSize;
     svmSize.push_back(filterSize);
+    config["stride"]>>stride;
 
-    config["FileWithTestImage"]>>test_file;
-    config["OutputFile"]>>output_file;
-    config["TestImageFolder"]>>image_folder;
+    config["test_data"]>>test_file;
+    config["test_data_folder"]>>image_folder;
+    config["result_file"]>>output_file;
 }
 
 int main(int argc, char *argv[])

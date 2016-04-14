@@ -6,6 +6,7 @@
 #include <opencv2/imgproc/imgproc.hpp>
 
 #include <vector>
+#include <string>
 
 class FeatureMap
 {
@@ -16,6 +17,8 @@ public:
     void resize(const cv::Size& size);
     cv::Size size() const;
     void reshapeToVector(cv::Mat&  feature) const;
+    bool save(std::string file_name);
+    bool load(std::string file_name);
 private:
     std::vector<cv::Mat> map;
 };

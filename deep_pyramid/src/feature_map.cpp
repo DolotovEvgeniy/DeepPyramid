@@ -64,14 +64,53 @@ void FeatureMap::reshapeToVector(Mat& feature) const
 {
     feature=Mat(1, map[0].rows*map[0].cols*map.size(),CV_32FC1);
     for(unsigned int layer=0;layer<map.size();layer++)
+    {
+        for(int h=0;h<map[layer].rows;h++)
         {
-            for(int h=0;h<map[layer].rows;h++)
+            for(int w=0;w<map[layer].cols;w++)
             {
-                for(int w=0;w<map[layer].cols;w++)
-                {
-                    int indx=w+h*map[layer].cols+layer*map[layer].cols*map[layer].rows;
-                    feature.at<float>(0,indx)=map[layer].at<float>(h, w);
-                }
+                int indx=w+h*map[layer].cols+layer*map[layer].cols*map[layer].rows;
+                feature.at<float>(0,indx)=map[layer].at<float>(h, w);
             }
         }
+    }
+}
+
+bool FeatureMap::load(string file_name)
+{
+    FileStorage file(file_name, FileStorage::READ);
+
+    if(file.isOpened()==false)
+    {
+        return false;
+    }
+
+    int channels;
+    file["channels"]>>channels;
+
+    for(int i=0;i<channels;i++)
+    {
+        Mat channel;
+        file["channel_"+to_string(i)]>>channel;
+        map.push_back(channel);
+    }
+    file.release();
+    return true;
+}
+
+bool FeatureMap::save(string file_name)
+{
+    FileStorage file(file_name, FileStorage::WRITE);
+    if(file.isOpened()==false)
+    {
+        return false;
+    }
+
+    file<<"channels"<<(int)map.size();
+    for(unsigned int i=0;i<map.size();i++)
+    {
+        file<<"channel_"+to_string(i)<<map[i];
+    }
+    file.release();
+    return true;
 }

@@ -71,22 +71,6 @@ int parseCommandLine(int argc, char *argv[], Mat& image, FileStorage& config)
     return ReturnCode::Success;
 }
 
-void readConfig(const FileStorage& config, string& model_file, string& trained_net_file,
-                vector<string>& svm_file, vector<Size>& svmSize, int& levelCount, int& stride)
-{
-    config["net"]>>model_file;
-    config["weights"]>>trained_net_file;
-    config["number_of_levels"]>>levelCount;
-
-    string svm_trained_file;
-    config["svm"]>>svm_trained_file;
-    svm_file.push_back(svm_trained_file);
-    Size filterSize;
-    config["filter_size"]>>filterSize;
-    config["stride"]>>stride;
-    svmSize.push_back(filterSize);
-}
-
 void saveImageWithObjects(string file_name, const Mat& image, const vector<Rect>& objects)
 {
     Mat imageWithObjects;
@@ -109,26 +93,14 @@ int main(int argc, char *argv[])
     {
         return returnCode;
     }
-
-    string model_file, trained_net_file;
-    int levelCount;
-
-    vector<string> svm_file;
-    vector<Size> svmSize;
-    int stride;
-
-    readConfig(config, model_file, trained_net_file, svm_file, svmSize, levelCount, stride);
-    config.release();
-
-    DeepPyramid pyramid(model_file, trained_net_file,svm_file, svmSize, levelCount, stride);
-
+cout<<"KOKOKO"<<endl;
+    DeepPyramid pyramid(config);
+    cout<<"KOKOKO"<<endl;
     vector<Rect> objects;
     vector<float> confidence;
-
     pyramid.detect(image, objects, confidence);
 
     saveImageWithObjects("detectedObjects.jpg", image, objects);
-
 
     return ReturnCode::Success;
 }

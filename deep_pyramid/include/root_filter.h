@@ -10,17 +10,20 @@
 
 #include "feature_map.h"
 #include "bounding_box.h"
+#include <feature_map_svm.h>
+
 #define OBJECT 1
 #define NOT_OBJECT -1
 
 class RootFilter
 {
 public:
-    RootFilter(cv::Size filterSize, CvSVM* svm);
+    RootFilter(cv::Size filterSize, std::string svm_file);
     void processFeatureMap(const FeatureMap& map, std::vector<BoundingBox>& detectedObjects, int stride=1) const;
+    cv::Size  getFilterSize();
 private:
     cv::Size filterSize;
-    CvSVM* svm;
+    FeatureMapSVM svm;
     float classify(const FeatureMap& map, bool returnDFVal=false) const;
 };
 

@@ -35,148 +35,9 @@ enum
 };
 };
 
-
-class TrainConfiguration
+int parseCommandLine(int argc, char *argv[], FileStorage& config)
 {
-public:
-    string file_with_train_image;
-    string train_image_folder;
-    Size filterSize;
-    int bootStrapTrainIter;
-    int sampleMaxCount;
-    string SVMSaveName;
-
-    TrainConfiguration(FileStorage& config)
-    {
-        config["FileWithTrainImage"]>>file_with_train_image;
-        config["TrainImageFolder"]>>train_image_folder;
-        config["TrainFilter-size"]>>filterSize;
-        config["BootStrapTrainIter"]>>bootStrapTrainIter;
-        config["SampleMaxCount"]>>sampleMaxCount;
-        config["SVMSaveName"]>>SVMSaveName;
-    }
-
-};
-#define MARGIN_THRESHOLD 1
-
-Rect originalRect2Norm5(const Rect& originalRect, int level, const Size& imgSize,
-                        const Size& featureMapSize, const int& levelCount,
-                        const double& levelScale)
-{
-    double longSide=std::max(imgSize.height, imgSize.width);
-    double scale=featureMapSize.width/(pow(levelScale, levelCount-level-1)*longSide);
-    return scaleRect(originalRect, scale);
-}
-
-int chooseLevel(const Size& filterSize, const Rect& boundBox, const Size& imgSize,
-                const Size& featureMapSize, const int& levelCount, const double& levelScale)
-{
-    vector<double> f;
-    for(int i=0;i<levelCount;i++)
-    {
-        Rect r=originalRect2Norm5(boundBox, i, imgSize, featureMapSize, levelCount, levelScale);
-
-        f.push_back(abs(filterSize.width-r.width)+abs(r.height-filterSize.height));
-    }
-    int bestLevel=distance(f.begin(), min_element(f.begin(), f.end()));
-
-    return bestLevel;
-}
-
-void extractFeatureVectors(const Mat& img, const Size& filterSize, const vector<Rect>& objects,
-                           const DeepPyramid& pyramid, Mat& features, Mat& labels)
-{
-    int stride=1;
-    vector<FeatureMap> maps;
-    pyramid.constructFeatureMapPyramid(img, maps);
-    Size mapSize=maps[0].size();
-    for(int level=0; level<pyramid.levelCount; level++)
-    {
-        vector<Rect> rectAtLevel;
-        for(unsigned int rect=0; rect<objects.size();rect++)
-        {
-            rectAtLevel.push_back(originalRect2Norm5(objects[rect], level,
-                                                     Size(img.cols, img.rows),maps[level].size(),
-                                                     pyramid.levelCount, pyramid.levelScale));
-        }
-        for(int width=0; width<mapSize.width-filterSize.width; width+=stride)
-            for(int height=0; height<mapSize.height-filterSize.height; height+=stride)
-            {
-                Rect featureMapRectangle(Point(width, height), filterSize);
-
-                bool extractFeature=true;
-                for(unsigned int rect=0;rect<rectAtLevel.size();rect++)
-                {
-                    if(IOU(featureMapRectangle, rectAtLevel[rect])>0.3)
-                    {
-                        extractFeature=false;
-                        break;
-                    }
-                }
-
-                if(extractFeature)
-                {
-                    FeatureMap map;
-                    maps[level].extractFeatureMap(featureMapRectangle, map);
-                    Mat feature;
-                    map.reshapeToVector(feature);
-                    features.push_back(feature);
-                    labels.push_back(NOT_OBJECT);
-                }
-            }
-    }
-    for(unsigned int rect=0;rect<objects.size();rect++)
-    {
-        int level=chooseLevel(filterSize, objects[rect], Size(img.cols, img.rows),
-                              maps[0].size(), pyramid.levelCount, pyramid.levelScale);
-        Rect featureMapRectangle=originalRect2Norm5(objects[rect], level,
-                                                    Size(img.cols, img.rows),maps[level].size(),
-                                                    pyramid.levelCount, pyramid.levelScale);
-        FeatureMap map;
-        maps[level].extractFeatureMap(featureMapRectangle, map);
-        map.resize(filterSize);
-        Mat feature;
-        map.reshapeToVector(feature);
-        features.push_back(feature);
-        labels.push_back(OBJECT);
-    }
-}
-void deleteEasyExamples(CvSVM* svm, Mat& features, Mat& labels)
-{
-    Mat featuresWithOutEasy;
-    Mat labelsWithOutEasy;
-    for(int i=0;i<features.rows;i++)
-    {
-        if(labels.at<int>(i,0)==OBJECT || svm->predict(features.row(i))!=labels.at<int>(i,0))
-        {
-            featuresWithOutEasy.push_back(features.row(i));
-            labelsWithOutEasy.push_back(labels.at<int>(i,0));
-        }
-        else
-        {
-            if(fabs(svm->predict(features.row(i), true))<MARGIN_THRESHOLD)
-            {
-                featuresWithOutEasy.push_back(features.row(i));
-                labelsWithOutEasy.push_back(labels.at<int>(i,0));
-            }
-        }
-    }
-    featuresWithOutEasy.copyTo(features);
-    labelsWithOutEasy.copyTo(labels);
-
-    featuresWithOutEasy.release();
-    labelsWithOutEasy.release();
-}
-
-void addNewHardExamples(CvSVM* svm, Mat& features, Mat& labels, const Mat& image,
-                        const vector<Rect> objects)
-{
-
-}
-
-int main(int argc, char *argv[])
-{
-    CommandLineParser parser(argc, argv, argsDefs);
+    cv::CommandLineParser parser(argc, argv, argsDefs);
     string configFileName = parser.get<std::string>("config");
 
     if (configFileName.empty() == true)
@@ -186,7 +47,7 @@ int main(int argc, char *argv[])
         return ReturnCode::ConfigFileNotSpecified;
     }
 
-    FileStorage config(configFileName, FileStorage::READ);
+    config.open(configFileName, FileStorage::READ);
 
     if(config.isOpened()==false)
     {
@@ -194,80 +55,148 @@ int main(int argc, char *argv[])
                   << "' not found. Exiting." << std::endl;
         return ReturnCode::ConfigFileNotFound;
     }
-    string model_file, trained_net_file;
-    int numLevels;
 
-    vector<string> svm_file;
-    vector<Size> svmSize;
-    int stride;
+    return ReturnCode::Success;
+}
 
-    DeepPyramid pyramid(model_file, trained_net_file,svm_file, svmSize, numLevels, stride);
+#define MARGIN_THRESHOLD 1
 
-    TrainConfiguration trainConfig(config);
-
-    FDDBContainer data;
-    data.load(trainConfig.file_with_train_image, trainConfig.train_image_folder);
-
-    Mat features;
-    Mat labels;
-
-    for(int i=0;i<30;i++)
+void loadFeature(string filename, int type, Size size, vector<FeatureMap>& features, vector<int>& labels)
+{
+    ifstream file(filename);
+    string featureFile;
+    while(file>>featureFile)
     {
-        Mat image;
-        vector<Rect> objects;
-        vector<float> confidence;
-        data.next(image, objects, confidence);
+        FeatureMap map;
+        map.load(featureFile);
+        map.resize(size);
 
-        extractFeatureVectors(image, trainConfig.filterSize, objects, pyramid, features, labels);
-        cout<<"Count of features:"<<features.rows<<endl;
+        features.push_back(map);
+        labels.push_back(type);
     }
-    CvSVMParams params;
-    params.svm_type    = CvSVM::C_SVC;
-    params.kernel_type = CvSVM::LINEAR;
-    params.term_crit   = cvTermCriteria(CV_TERMCRIT_ITER, 1000, 1e-6);
-    CvSVM* svm=new CvSVM();
-    svm->train_auto(features,labels, Mat(),Mat(), params);
+}
 
-    for(int i=0;i<trainConfig.bootStrapTrainIter;i++)
+void calculateAccuracy(CvSVM* svm, Mat& features, Mat& labels)
+{
+    int objectsCount=0;
+    int negativeCount=0;
+
+    int trueNegative=0;
+    int truePositive=0;
+
+    for(int i=0; i<features.rows;i++)
     {
-        deleteEasyExamples(svm, features, labels);
-
-
-        Mat newFeatures;
-        Mat newLabels;
-
-        Mat image;
-        vector<Rect> objects;
-        vector<float> confidence;
-        data.next(image, objects, confidence);
-
-        extractFeatureVectors(image, trainConfig.filterSize, objects, pyramid, newFeatures, newLabels);
-
-        for(int i=0;i<newFeatures.rows;i++)
+        if(labels.at<int>(i,0)==OBJECT)
         {
-            if(newLabels.at<int>(i,0)==OBJECT || svm->predict(newFeatures.row(i))!=newLabels.at<int>(i,0))
+            objectsCount++;
+        }
+        else
+        {
+            if(labels.at<int>(i,0)==NOT_OBJECT)
             {
-                features.push_back(newFeatures.row(i));
-                labels.push_back(newLabels.at<int>(i,0));
+                negativeCount++;
+            }
+        }
+        if(svm->predict(features.row(i))==labels.at<int>(i,0))
+        {
+            if(labels.at<int>(i,0)==OBJECT)
+            {
+                truePositive++;
             }
             else
             {
-                if(fabs(svm->predict(newFeatures.row(i), true))<MARGIN_THRESHOLD)
+                if(labels.at<int>(i,0)==NOT_OBJECT)
                 {
-                    features.push_back(newFeatures.row(i));
-                    labels.push_back(newLabels.at<int>(i,0));
+                    trueNegative++;
+                }
+            }
+        }
+    }
+    cout<<"Objects classification accuracy:"<<truePositive/objectsCount<<endl;
+    cout<<"Negative classification accuracy:"<<trueNegative/negativeCount<<endl;
+    cout<<"Common classification accuracy:"<<(truePositive+trueNegative)/(objectsCount+negativeCount);
+
+    cout<<"Count of features:"<<objectsCount+negativeCount<<endl;
+}
+
+int main(int argc, char *argv[])
+{
+    FileStorage config;
+    int returnCode=parseCommandLine(argc, argv, config);
+
+    if(returnCode!=ReturnCode::Success)
+    {
+        return returnCode;
+    }
+
+    //load svm size
+    Size filterSize;
+    config["filter_size"]>>filterSize;
+
+    //load positie samples
+    string objects_feature_filename;
+    config["objects_feature"]>>objects_feature_filename;
+    vector<FeatureMap> objectsFeature;
+    vector<int> objectsLabel;
+    loadFeature(objects_feature_filename, OBJECT, filterSize, objectsFeature, objectsLabel);
+
+    //load negative samples
+    string negative_feature_filename;
+    config["negtive_feature"]>>negative_feature_filename;
+    vector<FeatureMap> negativeFeature;
+    vector<int> negativeLabel;
+    loadFeature(negative_feature_filename, NOT_OBJECT, filterSize, negativeFeature, negativeLabel);
+
+    //load all fddb data
+    FDDBContainer data;
+    string train_data_filename;
+    string train_data_folder;
+    config["train_data"]>>train_data_filename;
+    config["train_data_folder"]>>train_data_folder;
+    data.load(train_data_filename, train_data_folder);
+
+    //train
+    FeatureMapSVM svm;
+    svm.train(objectsFeature, negativeFeature);
+
+    DeepPyramid pyramid(config);
+
+    pyramid.changeRootFilter(svm, filterSize);
+
+    int iterationCount;
+    config["max_iter"]>>iterationCount;
+    int imageInIteration;
+    config["image_in_iter"]>>imageInIteration;
+    for(int iter=0;iter<iterationCount;iter++)
+    {
+        for(int j=0; j<imageInIteration;j++)
+        {
+            string image_path;
+            Mat image;
+            vector<Rect> objects;
+
+            data.next(image_path, image, objects);
+            vector<FeatureMap> maps;
+            pyramid.extractNotObjectsFeatureMap(image, objects, filterSize, maps);
+            for(unsigned int m=0;m<maps.size();m++)
+            {
+                if(svm.predict(maps[m], false)==OBJECT)
+                {
+                    negativeFeature.push_back(maps[m]);
                 }
             }
         }
 
-        cout<<"Count of features:"<<features.rows<<endl;
+        //new train
+        svm.train(objectsFeature, negativeFeature);
 
-        svm->train_auto(features,labels, Mat(),Mat(), params);
-        svm->save(("linear_svm"+std::to_string(static_cast<long long>(i))+".xml").c_str());
+        svm.printAccuracy(objectsFeature, negativeFeature);
+
+        //save
+        svm.save("linear_svm"+to_string(iter)+".xml");
     }
 
     config.release();
 
-    delete svm;
     return ReturnCode::Success;
 }

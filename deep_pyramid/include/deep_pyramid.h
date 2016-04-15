@@ -15,42 +15,43 @@
 #include "root_filter.h"
 #include <bounding_box_regressor.h>
 
-#define TIMER_START(name) int64 t_##name = getTickCount()
-#define TIMER_END(name) printf("TIMER_" #name ":\t%6.2fms\n", \
-    1000.f * ((getTickCount() - t_##name) / getTickFrequency()))
-
 #define OBJECT 1
 #define NOT_OBJECT -1
 
 class DeepPyramid
 {
 public:
+    void changeRootFilter(FeatureMapSVM svm, cv::Size filterSize);
     DeepPyramid(std::string model_file, std::string trained_net_file,
                 std::vector<std::string> svm_file, std::vector<cv::Size> svmSize,
                 int levelCount=7, int stride=1);
-
+    DeepPyramid(cv::FileStorage config);
     ~DeepPyramid();
 
     void detect(const cv::Mat& img, std::vector<cv::Rect>& objects, std::vector<float>& confidence, bool isBoundingBoxRegressor=true) const;
     void detect(const cv::Mat& img, std::vector<BoundingBox>& objects, bool isBoundingBoxRegressor=true) const;
-    void constructFeatureMapPyramid(const cv::Mat& img, std::vector<FeatureMap>& maps) const;
+    void extractObjectsFeatureMap(const cv::Mat& img, std::vector<cv::Rect>& objects, std::vector<FeatureMap>& maps);
+    void extractNotObjectsFeatureMap(const cv::Mat& img, std::vector<cv::Rect>& objects, cv::Size size, std::vector<FeatureMap>& maps);
+
+private:
     double levelScale;
     int  levelCount;
     int stride;
-private:
+    void constructFeatureMapPyramid(const cv::Mat& img, std::vector<FeatureMap>& maps) const;
     std::vector<RootFilter> rootFilter;
 
     NeuralNetwork* net;
     BoundingBoxRegressor regressor;
 
-    //Image Pyramid
     cv::Size embeddedImageSize(const cv::Size& img, const int& level) const;
+
     void constructImagePyramid(const cv::Mat& img, std::vector<cv::Mat>& imgPyramid) const;
 
     void detect(const std::vector<FeatureMap>& maps,std::vector<BoundingBox>& detectedObjects) const;
 
-    //rename
     cv::Rect norm5Rect2Original(const cv::Rect& norm5Rect, int level, const cv::Size& imgSize) const;
+    cv::Rect originalRect2Norm5(const cv::Rect& originalRect, int level, const cv::Size& imgSize) const;
+    int chooseLevel(const cv::Size& filterSize, const cv::Rect& boundBox, const cv::Size& imgSize) const;
     void calculateOriginalRectangle(std::vector<BoundingBox>& detectedObjects, const cv::Size& imgSize) const;
     void groupRectangle(std::vector<BoundingBox>& detectedObjects) const;
 };

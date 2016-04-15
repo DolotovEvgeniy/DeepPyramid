@@ -8,6 +8,7 @@
 
 #include <deep_pyramid.h>
 #include <fddb_container.h>
+#include <detect_result_container.h>
 
 using namespace cv;
 using namespace std;
@@ -57,65 +58,43 @@ int parseCommandLine(int argc, char *argv[], FileStorage& config)
     return ReturnCode::Success;
 }
 
-void readConfig(const FileStorage& config, string& model_file, string& trained_net_file,
-                vector<string>& svm_file, vector<Size>& svmSize, int& levelCount, int& stride,
-                string test_file, string image_folder, string output_file)
-{
-    config["net"]>>model_file;
-    config["weights"]>>trained_net_file;
-    config["number_of_levels"]>>levelCount;
-    string svm_trained_file;
-    config["svm"]>>svm_trained_file;
-    svm_file.push_back(svm_trained_file);
-    Size filterSize;
-    config["filter_size"]>>filterSize;
-    svmSize.push_back(filterSize);
-    config["stride"]>>stride;
-
-    config["test_data"]>>test_file;
-    config["test_data_folder"]>>image_folder;
-    config["result_file"]>>output_file;
-}
-
 int main(int argc, char *argv[])
 {
     FileStorage config;
 
     parseCommandLine(argc, argv, config);
 
-    string model_file, trained_net_file;
-    int levelCount;
+    DeepPyramid pyramid(config);
 
-    vector<string> svm_file;
-    vector<Size> svmSize;
-    int stride;
+    string test_data_filename;
+    string test_data_folder;
+    config["test_data"]>>test_data_filename;
+    config["test_data_folder"]>>test_data_folder;
 
-    string test_file, image_folder, output_file;
-
-    readConfig(config, model_file, trained_net_file, svm_file, svmSize, levelCount, stride,
-               test_file, image_folder, output_file);
-    config.release();
-
-    DeepPyramid pyramid(model_file, trained_net_file,svm_file, svmSize, levelCount, stride);
     FDDBContainer testData;
-    testData.load(test_file, image_folder);
+    testData.load(test_data_filename, test_data_folder);
 
-    FDDBContainer resultData;
+    DetectResultContainer resultData;
 
     for(int i=0;i<testData.size();i++)
     {
-        Mat image;
         string img_path;
-        testData.next(image, img_path);
-
+        Mat image;
         vector<Rect> objects;
-        vector<float> confidence;
-        pyramid.detect(image, objects, confidence);
+        testData.next(img_path, image, objects);
 
-        resultData.add(image_folder+img_path+".jpg", objects, confidence);
+        vector<Rect> detectedObjects;
+        vector<float> confidence;
+        pyramid.detect(image, detectedObjects, confidence);
+
+        resultData.add(test_data_folder+img_path+".jpg", detectedObjects, confidence);
     }
 
-    resultData.save(output_file);
+    string output_filename;
+    config["result_file"]>>output_filename;
+    resultData.save(output_filename);
+
+    config.release();
 
     return ReturnCode::Success;
 }

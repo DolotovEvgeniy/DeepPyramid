@@ -3,7 +3,6 @@
 
 using namespace std;
 using namespace cv;
-
 void FeatureMap::addLayer(Mat layer)
 {
     map.push_back(layer);

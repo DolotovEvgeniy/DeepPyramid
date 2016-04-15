@@ -45,6 +45,7 @@ void FDDBContainer::load(string fddb_file, string image_prefix)
                   << "' not found. Exiting" << std::endl;
         return;
     }
+
     string img_path;
     while(file>>img_path)
     {
@@ -62,16 +63,13 @@ void FDDBContainer::load(string fddb_file, string image_prefix)
         file>>objectCount;
 
         vector<Rect> objects;
-        vector<float> confidence;
         for(int i=0;i<objectCount;i++)
         {
             Rect  rect=readEllipseToRect(file);
             objects.push_back(rect);
-            confidence.push_back(0);
         }
         imagesPath.push_back(image_prefix+img_path+".jpg");
         objectsList.push_back(objects);
-        confidenceList.push_back(confidence);
     }
 
     resetCounter();
@@ -87,57 +85,22 @@ void FDDBContainer::resetCounter()
     counter=0;
 }
 
-void FDDBContainer::next(Mat& img, vector<Rect>& objects, vector<float>& confidence)
+void FDDBContainer::reset()
 {
+    resetCounter();
+}
+
+void FDDBContainer::next(string& image_path, Mat& img, vector<Rect>& objects)
+{
+    image_path=imagesPath[counter];
     img=imread(imagesPath[counter]);
 
-    for(unsigned int i=0;i<objects.size();i++)
+    for(unsigned int i=0;i<objectsList[counter].size();i++)
     {
         objects.push_back(objectsList[counter][i]);
-        confidence.push_back(confidenceList[counter][i]);
     }
+
     increaseCounter();
-}
-
-void FDDBContainer::next(Mat& img, string& imagePath)
-{
-    img=imread(imagesPath[counter]);
-    imagePath=imagesPath[counter];
-    increaseCounter();
-}
-
-void FDDBContainer::add(const string image_path, const vector<Rect>& objects,
-                        const vector<float>& confidence)
-{
-    imagesPath.push_back(image_path);
-
-    objectsList.push_back(objects);
-    confidenceList.push_back(confidence);
-}
-
-void FDDBContainer::save(string fddb_file)
-{
-    ofstream file(fddb_file);
-
-    if(file.is_open()==false)
-    {
-        std::cerr << "Output file '" << fddb_file
-                  << "' not created. Exiting" << std::endl;
-        return;
-    }
-    for(unsigned int i=0;i<imagesPath.size();i++)
-    {
-        file<<imagesPath[i]<<endl;
-        file<<objectsList[i].size()<<endl;
-        for(unsigned int j=0;j<objectsList[i].size();j++)
-        {
-            file<<objectsList[i][j].x<<" ";
-            file<<objectsList[i][j].y<<" ";
-            file<<objectsList[i][j].width<<" ";
-            file<<objectsList[i][j].height<<" ";
-            file<<confidenceList[i][j]<<endl;
-        }
-    }
 }
 
 int FDDBContainer::size()

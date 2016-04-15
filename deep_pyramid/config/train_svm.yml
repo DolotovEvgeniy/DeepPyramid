@@ -1,0 +1,12 @@
+%YAML:1.0
+net: "supervisionCNN.prototxt"
+weights: "bvlc_alexnet.caffemodel"
+number_of_levels: 7
+svm: "linear_svm.xml"
+filter_size: [ 7, 11 ]
+stride: 1
+objects_feature: "faces.txt"
+negative_feature: "negative.txt"
+fddb_data: "fddb.txt"
+fddb_data_folder: /images/
+max_iter: 10000000

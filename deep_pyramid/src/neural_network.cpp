@@ -64,7 +64,7 @@ void NeuralNetwork::getNeuralNetOutput(FeatureMap &map)
 
 void NeuralNetwork::calculate()
 {
-    net->ForwardPrefilled();
+    net->Forward();
 }
 
 Size NeuralNetwork::inputLayerSize()

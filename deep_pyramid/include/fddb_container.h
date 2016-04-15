@@ -16,16 +16,13 @@ class FDDBContainer
 public:
     FDDBContainer() {}
     void load(std::string fddb_file, std::string image_prefix="");
-    void save(std::string fddb_file);
-    void add(const std::string image_path, const std::vector<cv::Rect>& boxes,
-             const std::vector<float>& confidence);
-    void next(cv::Mat& img, std::vector<cv::Rect>& objects, std::vector<float>& confidence);
-    void next(cv::Mat& img, std::string& imagePath);
+    void next(std::string& image_path, cv::Mat& img, std::vector<cv::Rect>& objects);
     int size();
+    int objectsCount();
+    void reset();
 private:
     std::vector<std::string> imagesPath;
     std::vector<std::vector<cv::Rect> > objectsList;
-    std::vector<std::vector<float> > confidenceList;
     void increaseCounter();
     void resetCounter();
     int counter;

@@ -11,6 +11,10 @@ using namespace cv;
 using namespace std;
 using namespace caffe;
 
+#define TIMER_START(name) int64 t_##name = getTickCount()
+#define TIMER_END(name) printf("TIMER_" #name ":\t%6.2fms\n", \
+    1000.f * ((getTickCount() - t_##name) / getTickFrequency()))
+
 Rect DeepPyramid::norm5Rect2Original(const Rect& norm5Rect, int level, const Size& imgSize) const
 {
     double longSide=std::max(imgSize.height, imgSize.width);
@@ -44,6 +48,7 @@ Size DeepPyramid::embeddedImageSize(const Size& imgSize, const int& i) const
 void DeepPyramid::constructImagePyramid(const Mat& img, vector<Mat>& imgPyramid) const
 {
     Size imgSize(img.cols, img.rows);
+    cout<<"Create image pyramid..."<<endl;
     for(int level=0; level<levelCount; level++)
     {
         Mat imgAtLevel(net->inputLayerSize(),CV_8UC3, Scalar::all(0));
@@ -55,7 +60,6 @@ void DeepPyramid::constructImagePyramid(const Mat& img, vector<Mat>& imgPyramid)
         resizedImg.copyTo(imgAtLevel(Rect(Point(0,0),resizedImgSize)));
         imgPyramid.push_back(imgAtLevel);
     }
-    cout<<"Create image pyramid..."<<endl;
     cout<<"Status: Success!"<<endl;
 }
 //
@@ -147,16 +151,35 @@ DeepPyramid::DeepPyramid(string model_file, string trained_net_file,
     stride=_stride;
     for(unsigned int i=0;i<svm_file.size();i++)
     {
-        CvSVM* classifier=new CvSVM();
-        classifier->load(svm_file[i].c_str());
-        rootFilter.push_back(RootFilter(svmSize[i], classifier));
+        rootFilter.push_back(RootFilter(svmSize[i], svm_file[i]));
     }
+}
+DeepPyramid::DeepPyramid(FileStorage config)
+{
+    string model_file;
+    string trained_net_file;
+    config["net"]>>model_file;
+    config["weights"]>>trained_net_file;
+    net=new NeuralNetwork(model_file, trained_net_file);
+
+    config["number_of_levels"]>>levelCount;
+
+    string svm_trained_file;
+    config["svm"]>>svm_trained_file;
+    Size filterSize;
+    config["filter_size"]>>filterSize;
+    RootFilter filter(filterSize, svm_trained_file);
+    rootFilter.push_back(filter);
+    cout<<"HERE!!!"<<endl;
+    config["stride"]>>stride;
+    cout<<"HERE!!!"<<endl;
 }
 
 void DeepPyramid::detect(const Mat &img, vector<BoundingBox> &objects, bool isBoundingBoxRegressor) const
 {
     CV_Assert(img.channels()==3);
     vector<FeatureMap> maps;
+    cout<<"here!"<<endl;
     constructFeatureMapPyramid(img, maps);
     cout<<"filter"<<endl;
     detect(maps, objects);
@@ -176,4 +199,84 @@ void DeepPyramid::detect(const Mat &img, vector<BoundingBox> &objects, bool isBo
 
 DeepPyramid::~DeepPyramid()
 {
+}
+
+Rect DeepPyramid::originalRect2Norm5(const Rect& originalRect, int level, const Size& imgSize) const
+{
+
+    double longSide=std::max(imgSize.height, imgSize.width);
+
+    Size networkOutputSize=net->outputLayerSize();
+    double scale=networkOutputSize.width/(pow(levelScale, levelCount-level-1)*longSide);
+    return scaleRect(originalRect, scale);
+}
+
+int DeepPyramid::chooseLevel(const Size& filterSize, const Rect& boundBox, const Size& imgSize) const
+{
+    vector<double> f;
+    for(int i=0;i<levelCount;i++)
+    {
+        Rect r=originalRect2Norm5(boundBox, i, imgSize);
+
+        f.push_back(abs(filterSize.width-r.width)+abs(r.height-filterSize.height));
+    }
+    int bestLevel=distance(f.begin(), min_element(f.begin(), f.end()));
+
+    return bestLevel;
+}
+
+void DeepPyramid::changeRootFilter(FeatureMapSVM svm, Size filterSize)
+{
+    rootFilter.clear();
+  //  rootFilter.push_back(RootFilter(filterSize, svm));
+}
+
+void DeepPyramid::extractNotObjectsFeatureMap(const Mat &img, vector<Rect> &objects, Size size, vector<FeatureMap> &maps)
+{
+    Size imgSize(img.cols, img.rows);
+
+    vector<FeatureMap> featureMaps;
+    constructFeatureMapPyramid(img, featureMaps);
+    for(int i=0;i<levelCount;i++)
+    {
+        vector<Rect> objectsAtLevel;
+        for(unsigned int obj=0;obj<objects.size();obj++)
+        {
+            objectsAtLevel.push_back(originalRect2Norm5(objects[obj], i, imgSize));
+        }
+
+        Size mapSize=featureMaps[i].size();
+        for(int w=0;w<mapSize.width-size.width;w++)
+            for(int h=0;h<mapSize.height-size.height;h++)
+            {
+                bool isNegative=true;
+                for(unsigned int obj=0;obj<objects.size();obj++)
+                {
+                    if(IOU(Rect(Point(w,h), size), objectsAtLevel[obj])>0.7)
+                        isNegative=false;
+                }
+                FeatureMap map;
+                if(isNegative)
+                {
+                    featureMaps[i].extractFeatureMap(Rect(Point(w,h), size), map);
+                    maps.push_back(map);
+                }
+            }
+    }
+}
+
+
+void DeepPyramid::extractObjectsFeatureMap(const Mat& image, vector<Rect> &objects, vector<FeatureMap> &maps)
+{
+    vector<FeatureMap> featureMaps;
+    constructFeatureMapPyramid(image, featureMaps);
+    for(unsigned int i=0;i<objects.size();i++)
+    {
+        Size imgSize(image.cols, image.rows);
+        int level=chooseLevel(rootFilter[0].getFilterSize(), objects[i], imgSize);
+        Rect norm5Rect=originalRect2Norm5(objects[i], level, imgSize);
+        FeatureMap map;
+        featureMaps[level].extractFeatureMap(norm5Rect, map);
+        maps.push_back(map);
+    }
 }

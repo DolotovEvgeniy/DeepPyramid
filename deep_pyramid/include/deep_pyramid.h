@@ -38,11 +38,12 @@ private:
     int  levelCount;
     int stride;
     void constructFeatureMapPyramid(const cv::Mat& img, std::vector<FeatureMap>& maps) const;
-    std::vector<RootFilter> rootFilter;
+    std::vector<FeatureMapSVM*> rootFilter;
 
     NeuralNetwork* net;
     BoundingBoxRegressor regressor;
 
+     void processFeatureMap(int filterIndx, const FeatureMap& map, std::vector<BoundingBox>& detectedObjects) const;
     cv::Size embeddedImageSize(const cv::Size& img, const int& level) const;
 
     void constructImagePyramid(const cv::Mat& img, std::vector<cv::Mat>& imgPyramid) const;

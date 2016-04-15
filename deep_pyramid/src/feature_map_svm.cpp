@@ -87,3 +87,12 @@ void FeatureMapSVM::printAccuracy(const vector<FeatureMap> &positive, const vect
 
     cout<<"Count of features:"<<objectsCount+negativeCount<<endl;
 }
+
+Size FeatureMapSVM::getMapSize()
+{
+    return mapSize;
+}
+FeatureMapSVM::FeatureMapSVM(Size size)
+{
+    mapSize=size;
+}

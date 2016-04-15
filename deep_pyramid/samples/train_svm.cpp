@@ -156,7 +156,7 @@ int main(int argc, char *argv[])
     data.load(train_data_filename, train_data_folder);
 
     //train
-    FeatureMapSVM svm;
+    FeatureMapSVM svm(filterSize);
     svm.train(objectsFeature, negativeFeature);
 
     DeepPyramid pyramid(config);

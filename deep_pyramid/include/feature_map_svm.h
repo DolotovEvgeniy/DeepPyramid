@@ -19,13 +19,16 @@
 class FeatureMapSVM
 {
 public:
+    FeatureMapSVM(cv::Size size);
     void save(const std::string& filename);
     void load(const std::string& filename);
     float predict(const FeatureMap& sample, bool returnDFVal=false) const;
     void train(const std::vector<FeatureMap>& positive, const std::vector<FeatureMap>& negative);
     void printAccuracy(const std::vector<FeatureMap> &positive, const std::vector<FeatureMap>& negative);
     ~FeatureMapSVM();
+    cv::Size  getMapSize();
 private:
     CvSVM* svm;
+    cv::Size mapSize;
 };
 #endif

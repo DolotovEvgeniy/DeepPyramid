@@ -86,7 +86,7 @@ void DeepPyramid::detect(const vector<FeatureMap>& maps, vector<BoundingBox>& de
         {
             vector<BoundingBox> detectedObjectsAtLevel;
 
-            rootFilter[i].processFeatureMap(maps[j], detectedObjectsAtLevel, stride);
+            processFeatureMap(i, maps[j], detectedObjectsAtLevel);
             for(unsigned int k=0;k<detectedObjectsAtLevel.size();k++)
             {
                 detectedObjectsAtLevel[k].level=j;
@@ -151,7 +151,9 @@ DeepPyramid::DeepPyramid(string model_file, string trained_net_file,
     stride=_stride;
     for(unsigned int i=0;i<svm_file.size();i++)
     {
-        rootFilter.push_back(RootFilter(svmSize[i], svm_file[i]));
+        FeatureMapSVM* svm=new FeatureMapSVM(svmSize[i]);
+        svm->load(svm_file[i]);
+        rootFilter.push_back(svm);
     }
 }
 DeepPyramid::DeepPyramid(FileStorage config)
@@ -168,8 +170,9 @@ DeepPyramid::DeepPyramid(FileStorage config)
     config["svm"]>>svm_trained_file;
     Size filterSize;
     config["filter_size"]>>filterSize;
-    RootFilter filter(filterSize, svm_trained_file);
-    rootFilter.push_back(filter);
+    FeatureMapSVM* svm=new FeatureMapSVM(filterSize);
+    svm->load(svm_trained_file);
+    rootFilter.push_back(svm);
     cout<<"HERE!!!"<<endl;
     config["stride"]>>stride;
     cout<<"HERE!!!"<<endl;
@@ -273,10 +276,33 @@ void DeepPyramid::extractObjectsFeatureMap(const Mat& image, vector<Rect> &objec
     for(unsigned int i=0;i<objects.size();i++)
     {
         Size imgSize(image.cols, image.rows);
-        int level=chooseLevel(rootFilter[0].getFilterSize(), objects[i], imgSize);
+        int level=chooseLevel(rootFilter[0]->getMapSize(), objects[i], imgSize);
         Rect norm5Rect=originalRect2Norm5(objects[i], level, imgSize);
         FeatureMap map;
         featureMaps[level].extractFeatureMap(norm5Rect, map);
         maps.push_back(map);
+    }
+}
+
+void DeepPyramid::processFeatureMap(int filterIdx, const FeatureMap &map, vector<BoundingBox> &detectedObjects) const
+{
+    Size mapSize=map.size();
+    Size filterSize=rootFilter[filterIdx]->getMapSize();
+
+    for(int width=0; width<mapSize.width-filterSize.width; width+=stride)
+    {
+        for(int height=0; height<mapSize.height-filterSize.height; height+=stride)
+        {
+            FeatureMap extractedMap;
+            map.extractFeatureMap(Rect(Point(width, height), filterSize), extractedMap);
+            if(rootFilter[filterIdx]->predict(extractedMap)==OBJECT)
+            {
+                BoundingBox box;
+                box.norm5Box=Rect(Point(width, height), filterSize);
+                box.confidence=std::fabs(rootFilter[filterIdx]->predict(extractedMap, true));
+                box.map=extractedMap;
+                detectedObjects.push_back(box);
+            }
+        }
     }
 }

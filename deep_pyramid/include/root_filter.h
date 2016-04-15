@@ -23,7 +23,7 @@ public:
     cv::Size  getFilterSize();
 private:
     cv::Size filterSize;
-    FeatureMapSVM svm;
+    FeatureMapSVM* svm;
     float classify(const FeatureMap& map, bool returnDFVal=false) const;
 };
 

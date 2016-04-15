@@ -161,8 +161,6 @@ int main(int argc, char *argv[])
 
     DeepPyramid pyramid(config);
 
-    pyramid.changeRootFilter(svm, filterSize);
-
     int iterationCount;
     config["max_iter"]>>iterationCount;
     int imageInIteration;

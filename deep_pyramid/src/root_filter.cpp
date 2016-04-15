@@ -26,13 +26,14 @@ void RootFilter::processFeatureMap(const FeatureMap &map, vector<BoundingBox> &d
 
 float RootFilter::classify(const FeatureMap &map, bool returnDFVal) const
 {
-    return svm.predict(map, returnDFVal);
+    return svm->predict(map, returnDFVal);
 }
 
 RootFilter::RootFilter(Size _filterSize, string svm_file)
 {
     filterSize=_filterSize;
-    svm.load(svm_file);
+    svm=new FeatureMapSVM;
+    svm->load(svm_file);
     cout<<"here&&&&&&"<<endl;
 }
 

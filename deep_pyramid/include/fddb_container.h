@@ -1,3 +1,5 @@
+// Copyright 2016 Dolotov Evgeniy
+
 #ifndef FDDB_CONTAINER_H
 #define FDDB_CONTAINER_H
 

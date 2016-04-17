@@ -1,39 +1,38 @@
-#ifndef DEEP_PYRAMID_H
-#define DEEP_PYRAMID_H
+// Copyright 2016 Dolotov Evgeniy
+
+#ifndef DEEP_PYRAMID_INCLUDE_DEEP_PYRAMID_H_
+#define DEEP_PYRAMID_INCLUDE_DEEP_PYRAMID_H_
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/ml/ml.hpp>
 
 #include <vector>
 #include <utility>
-#include <stdio.h>
+#include <string>
 
-#include <bounding_box.h>
-#include "neural_network.h"
-#include "root_filter.h"
-#include <bounding_box_regressor.h>
-
+#include "../include/bounding_box.h"
+#include "../include/neural_network.h"
+#include "../include/bounding_box_regressor.h"
+#include "../include/feature_map_svm.h"
 #define OBJECT 1
 #define NOT_OBJECT -1
 
-class DeepPyramid
-{
-public:
-    void changeRootFilter(FeatureMapSVM svm, cv::Size filterSize);
+class DeepPyramid {
+ public:
+    void changeRootFilter(FeatureMapSVM* svm);
     DeepPyramid(std::string model_file, std::string trained_net_file,
                 std::vector<std::string> svm_file, std::vector<cv::Size> svmSize,
-                int levelCount=7, int stride=1);
+                int levelCount, int stride);
     DeepPyramid(cv::FileStorage config);
     ~DeepPyramid();
 
-    void detect(const cv::Mat& img, std::vector<cv::Rect>& objects, std::vector<float>& confidence, bool isBoundingBoxRegressor=true) const;
-    void detect(const cv::Mat& img, std::vector<BoundingBox>& objects, bool isBoundingBoxRegressor=true) const;
+    void detect(const cv::Mat& img, std::vector<cv::Rect>& objects, std::vector<float>& confidence, bool isBoundingBoxRegressor = true) const;
+    void detect(const cv::Mat& img, std::vector<BoundingBox>& objects, bool isBoundingBoxRegressor = true) const;
     void extractObjectsFeatureMap(const cv::Mat& img, std::vector<cv::Rect>& objects, std::vector<FeatureMap>& maps);
     void extractNotObjectsFeatureMap(const cv::Mat& img, std::vector<cv::Rect>& objects, cv::Size size, std::vector<FeatureMap>& maps);
 
-private:
+ private:
     double levelScale;
     int  levelCount;
     int stride;
@@ -48,7 +47,7 @@ private:
 
     void constructImagePyramid(const cv::Mat& img, std::vector<cv::Mat>& imgPyramid) const;
 
-    void detect(const std::vector<FeatureMap>& maps,std::vector<BoundingBox>& detectedObjects) const;
+    void detect(const std::vector<FeatureMap>& maps, std::vector<BoundingBox>& detectedObjects) const;
 
     cv::Rect norm5Rect2Original(const cv::Rect& norm5Rect, int level, const cv::Size& imgSize) const;
     cv::Rect originalRect2Norm5(const cv::Rect& originalRect, int level, const cv::Size& imgSize) const;
@@ -56,4 +55,4 @@ private:
     void calculateOriginalRectangle(std::vector<BoundingBox>& detectedObjects, const cv::Size& imgSize) const;
     void groupRectangle(std::vector<BoundingBox>& detectedObjects) const;
 };
-#endif
+#endif  // DEEP_PYRAMID_INCLUDE_DEEP_PYRAMID_H_

@@ -1,3 +1,5 @@
+// Copyright 2016 Dolotov Evgeniy
+
 #ifndef NMS_H
 #define NMS_H
 

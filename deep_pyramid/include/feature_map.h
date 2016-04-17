@@ -1,3 +1,5 @@
+// Copyright 2016 Dolotov Evgeniy
+
 #ifndef FEATURE_MAP_H
 #define FEATURE_MAP_H
 

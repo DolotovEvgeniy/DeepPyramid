@@ -1,3 +1,5 @@
+// Copyright 2016 Dolotov Evgeniy
+
 #ifndef RECTANGLE_TRANSFORM_H
 #define RECTANGLE_TRANSFORM_H
 

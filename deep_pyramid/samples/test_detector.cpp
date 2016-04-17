@@ -1,3 +1,5 @@
+// Copyright 2016 Dolotov Evgeniy
+
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
@@ -5,6 +7,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <vector>
 
 #include <deep_pyramid.h>
 #include <fddb_container.h>
@@ -17,15 +20,12 @@ using namespace caffe;
 static const char argsDefs[] =
         "{ | config           |     | Path to configuration file }";
 
-void printHelp(std::ostream& os)
-{
+void printHelp(std::ostream& os) {
     os << "\tUsage: --config=path/to/config.xml" << std::endl;
 }
 
-namespace ReturnCode
-{
-enum
-{
+namespace ReturnCode {
+enum {
     Success = 0,
     ConfigFileNotSpecified = 1,
     ConfigFileNotFound = 2,
@@ -34,13 +34,11 @@ enum
     OutputFileNotCreated = 5
 };
 };
-int parseCommandLine(int argc, char *argv[], FileStorage& config)
-{
+int parseCommandLine(int argc, char *argv[], FileStorage& config) {
     cv::CommandLineParser parser(argc, argv, argsDefs);
     string configFileName = parser.get<std::string>("config");
 
-    if (configFileName.empty() == true)
-    {
+    if (configFileName.empty() == true) {
         std::cerr << "Configuration file is not specified." << std::endl;
         printHelp(std::cerr);
         return ReturnCode::ConfigFileNotSpecified;
@@ -48,8 +46,7 @@ int parseCommandLine(int argc, char *argv[], FileStorage& config)
 
     config.open(configFileName, FileStorage::READ);
 
-    if(config.isOpened()==false)
-    {
+    if (config.isOpened() == false) {
         std::cerr << "File '" << configFileName
                   << "' not found. Exiting." << std::endl;
         return ReturnCode::ConfigFileNotFound;
@@ -58,8 +55,7 @@ int parseCommandLine(int argc, char *argv[], FileStorage& config)
     return ReturnCode::Success;
 }
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
     FileStorage config;
 
     parseCommandLine(argc, argv, config);
@@ -68,16 +64,15 @@ int main(int argc, char *argv[])
 
     string test_data_filename;
     string test_data_folder;
-    config["test_data"]>>test_data_filename;
-    config["test_data_folder"]>>test_data_folder;
+    config["test_data"] >> test_data_filename;
+    config["test_data_folder"] >> test_data_folder;
 
     FDDBContainer testData;
     testData.load(test_data_filename, test_data_folder);
 
     DetectResultContainer resultData;
 
-    for(int i=0;i<testData.size();i++)
-    {
+    for(int i = 0; i < testData.size(); i++) {
         string img_path;
         Mat image;
         vector<Rect> objects;
@@ -91,7 +86,7 @@ int main(int argc, char *argv[])
     }
 
     string output_filename;
-    config["result_file"]>>output_filename;
+    config["result_file"] >> output_filename;
     resultData.save(output_filename);
 
     config.release();

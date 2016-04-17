@@ -1,34 +1,37 @@
-#include <feature_map_svm.h>
+// Copyright 2016 Dolotov Evgeniy
 
-using namespace std;
-using namespace cv;
+#include "../include/feature_map_svm.h"
+#include <string>
+#include <vector>
+#include <iostream>
 
-void FeatureMapSVM::load(const string& filename)
-{
-    svm=new CvSVM();
+using std::string;
+using std::vector;
+using cv::Mat;
+using cv::Size;
+using std::cout;
+using std::endl;
+
+void FeatureMapSVM::load(const string& filename) {
     svm->load(filename.c_str());
 }
 
-void FeatureMapSVM::save(const string &filename)
-{
+void FeatureMapSVM::save(const string &filename) {
     svm->save(filename.c_str());
 }
 
-float FeatureMapSVM::predict(const FeatureMap &sample, bool returnDFVal) const
-{
+float FeatureMapSVM::predict(const FeatureMap &sample, bool returnDFVal) const {
     Mat feature;
     sample.reshapeToVector(feature);
 
     return svm->predict(feature, returnDFVal);
 }
 
-void FeatureMapSVM::train(const vector<FeatureMap> &positive, const vector<FeatureMap>& negative)
-{
+void FeatureMapSVM::train(const vector<FeatureMap> &positive, const vector<FeatureMap>& negative) {
     Mat features;
     Mat labels;
 
-    for(unsigned int i=0;i<positive.size();i++)
-    {
+    for (unsigned int i = 0; i < positive.size(); i++) {
         Mat feature;
 
         positive[i].reshapeToVector(feature);
@@ -36,8 +39,7 @@ void FeatureMapSVM::train(const vector<FeatureMap> &positive, const vector<Featu
         labels.push_back(OBJECT);
     }
 
-    for(unsigned int i=0;i<negative.size();i++)
-    {
+    for (unsigned int i = 0; i < negative.size(); i++) {
         Mat feature;
 
         negative[i].reshapeToVector(feature);
@@ -50,49 +52,42 @@ void FeatureMapSVM::train(const vector<FeatureMap> &positive, const vector<Featu
     params.kernel_type = CvSVM::LINEAR;
     params.term_crit   = cvTermCriteria(CV_TERMCRIT_ITER, 1000, 1e-6);
 
-    svm->train_auto(features,labels, Mat(),Mat(), params);
+    svm->train_auto(features, labels, Mat(), Mat(), params);
 }
 
-FeatureMapSVM::~FeatureMapSVM()
-{
-   delete svm;
+FeatureMapSVM::~FeatureMapSVM() {
+    delete svm;
 }
 
-void FeatureMapSVM::printAccuracy(const vector<FeatureMap> &positive, const vector<FeatureMap>& negative)
-{
-    int objectsCount=positive.size();
-    int negativeCount=negative.size();
+void FeatureMapSVM::printAccuracy(const vector<FeatureMap> &positive, const vector<FeatureMap>& negative) {
+    int objectsCount = positive.size();
+    int negativeCount = negative.size();
 
-    int trueNegative=0;
-    int truePositive=0;
+    int trueNegative = 0;
+    int truePositive = 0;
 
-    for(unsigned int i=0;i<positive.size();i++)
-    {
-        if(predict(positive[i])==OBJECT)
-        {
+    for (unsigned int i = 0; i < positive.size(); i++) {
+        if (predict(positive[i]) == OBJECT) {
             truePositive++;
         }
     }
-    for(unsigned int i=0;i<negative.size();i++)
-    {
-        if(predict(negative[i])==OBJECT)
-        {
+    for (unsigned int i = 0; i < negative.size(); i++) {
+        if (predict(negative[i]) == NOT_OBJECT) {
             trueNegative++;
         }
     }
 
-    cout<<"Objects classification accuracy:"<<truePositive/objectsCount<<endl;
-    cout<<"Negative classification accuracy:"<<trueNegative/negativeCount<<endl;
-    cout<<"Common classification accuracy:"<<(truePositive+trueNegative)/(objectsCount+negativeCount);
+    cout << "Objects classification accuracy:" << truePositive/(double)objectsCount << endl;
+    cout << "Negative classification accuracy:" << trueNegative/(double)negativeCount << endl;
+    cout << "Common classification accuracy:" << (truePositive+trueNegative)/(double)(objectsCount+negativeCount) << endl;
 
-    cout<<"Count of features:"<<objectsCount+negativeCount<<endl;
+    cout << "Count of features:" << objectsCount+negativeCount << endl;
 }
 
-Size FeatureMapSVM::getMapSize()
-{
+Size FeatureMapSVM::getMapSize() {
     return mapSize;
 }
-FeatureMapSVM::FeatureMapSVM(Size size)
-{
-    mapSize=size;
+FeatureMapSVM::FeatureMapSVM(Size size) {
+    mapSize = size;
+    svm = new CvSVM();
 }

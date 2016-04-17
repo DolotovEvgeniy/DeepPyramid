@@ -1,3 +1,5 @@
+// Copyright 2016 Dolotov Evgeniy
+
 #ifndef SVM_H
 #define SVM_H
 

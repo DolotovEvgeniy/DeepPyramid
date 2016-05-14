@@ -28,10 +28,12 @@ float FeatureMapSVM::predict(const FeatureMap &sample, bool returnDFVal) const {
 }
 
 void FeatureMapSVM::train(const vector<FeatureMap> &positive, const vector<FeatureMap>& negative) {
+    cout<<"Positives count: "<<positive.size()<<endl;
+    cout<<"Negatives count: "<<negative.size()<<endl;
     Mat features;
     Mat labels;
 
-    for (unsigned int i = 0; i < positive.size(); i++) {
+    for (size_t i = 0; i < positive.size(); i++) {
         Mat feature;
 
         positive[i].reshapeToVector(feature);
@@ -39,7 +41,7 @@ void FeatureMapSVM::train(const vector<FeatureMap> &positive, const vector<Featu
         labels.push_back(OBJECT);
     }
 
-    for (unsigned int i = 0; i < negative.size(); i++) {
+    for (size_t i = 0; i < negative.size(); i++) {
         Mat feature;
 
         negative[i].reshapeToVector(feature);
@@ -59,19 +61,19 @@ FeatureMapSVM::~FeatureMapSVM() {
     delete svm;
 }
 
-void FeatureMapSVM::printAccuracy(const vector<FeatureMap> &positive, const vector<FeatureMap>& negative) {
+float FeatureMapSVM::printAccuracy(const vector<FeatureMap> &positive, const vector<FeatureMap>& negative) {
     int objectsCount = positive.size();
     int negativeCount = negative.size();
 
     int trueNegative = 0;
     int truePositive = 0;
 
-    for (unsigned int i = 0; i < positive.size(); i++) {
+    for (size_t i = 0; i < positive.size(); i++) {
         if (predict(positive[i]) == OBJECT) {
             truePositive++;
         }
     }
-    for (unsigned int i = 0; i < negative.size(); i++) {
+    for (size_t i = 0; i < negative.size(); i++) {
         if (predict(negative[i]) == NOT_OBJECT) {
             trueNegative++;
         }
@@ -82,6 +84,8 @@ void FeatureMapSVM::printAccuracy(const vector<FeatureMap> &positive, const vect
     cout << "Common classification accuracy:" << (truePositive+trueNegative)/(double)(objectsCount+negativeCount) << endl;
 
     cout << "Count of features:" << objectsCount+negativeCount << endl;
+
+    return trueNegative/(double)negativeCount;
 }
 
 Size FeatureMapSVM::getMapSize() {

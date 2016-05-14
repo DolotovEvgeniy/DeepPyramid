@@ -1,6 +1,6 @@
 // Copyright 2016 Dolotov Evgeniy
 
-#include "../include/rectangle_transform.h"
+#include <rectangle_transform.h>
 
 #include <vector>
 
@@ -23,13 +23,40 @@ double IOU(const Rect& rect1, const Rect& rect2) {
     return unionRect.area()/(double)(rect1.area()+rect2.area()-unionRect.area());
 }
 
+Rect weightedAvg_rect(const vector<BoundingBox> &rectangles)
+{
+    CV_Assert(rectangles.size() > 0);
+
+    Rect resultRect;
+
+    double sumOfX = 0, sumOfY = 0, sumOfWidth = 0, sumOfHeight = 0;
+    double weight = 0;
+    for (size_t i = 0; i < rectangles.size(); i++) {
+        weight += rectangles[i].confidence;
+    }
+    for (size_t i = 0; i < rectangles.size(); i++) {
+        Rect rectangle = rectangles[i].originalImageBox;
+        double c = rectangles[i].confidence;
+        double d=c/weight;
+        sumOfX+=rectangle.x*d;
+        sumOfY+=rectangle.y*d;
+        sumOfWidth+=rectangle.width*d;
+        sumOfHeight+=rectangle.height*d;
+    }
+    resultRect.x = sumOfX;
+    resultRect.y = sumOfY;
+    resultRect.width = sumOfWidth;
+    resultRect.height = sumOfHeight;
+    return resultRect;
+}
+
 Rect avg_rect(const vector<Rect>& rectangles) {
     CV_Assert(rectangles.size() > 0);
 
     Rect resultRect;
 
     double sumOfX = 0, sumOfY = 0, sumOfWidth = 0, sumOfHeight = 0;
-    for (unsigned int i = 0; i < rectangles.size(); i++) {
+    for (size_t i = 0; i < rectangles.size(); i++) {
         sumOfX+=rectangles[i].x;
         sumOfY+=rectangles[i].y;
         sumOfWidth+=rectangles[i].width;

@@ -28,6 +28,7 @@ private:
     void increaseCounter();
     void resetCounter();
     int counter;
+    std::string prefix;
 };
 
 #endif

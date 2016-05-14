@@ -11,10 +11,10 @@
 #include <utility>
 #include <string>
 
-#include "../include/bounding_box.h"
-#include "../include/neural_network.h"
-#include "../include/bounding_box_regressor.h"
-#include "../include/feature_map_svm.h"
+#include <bounding_box.h>
+#include <neural_network.h>
+#include <bounding_box_regressor.h>
+#include <feature_map_svm.h>
 #define OBJECT 1
 #define NOT_OBJECT -1
 
@@ -29,8 +29,8 @@ class DeepPyramid {
 
     void detect(const cv::Mat& img, std::vector<cv::Rect>& objects, std::vector<float>& confidence, bool isBoundingBoxRegressor = true) const;
     void detect(const cv::Mat& img, std::vector<BoundingBox>& objects, bool isBoundingBoxRegressor = true) const;
-    void extractObjectsFeatureMap(const cv::Mat& img, std::vector<cv::Rect>& objects, std::vector<FeatureMap>& maps);
-    void extractNotObjectsFeatureMap(const cv::Mat& img, std::vector<cv::Rect>& objects, cv::Size size, std::vector<FeatureMap>& maps);
+    void extractFeatureMap(const cv::Mat& img, std::vector<cv::Rect>& objects, cv::Size size, std::vector<FeatureMap>& omaps,
+                           std::vector<FeatureMap>& nmaps);
 
  private:
     double levelScale;

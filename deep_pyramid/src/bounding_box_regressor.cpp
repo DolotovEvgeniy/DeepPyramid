@@ -17,7 +17,7 @@ using cv::Rect;
 using cv::Point;
 
 void BoundingBoxRegressor::processBoundingBoxes(vector<BoundingBox>& objects) {
-    for (unsigned int i = 0; i < objects.size(); i++) {
+    for (size_t i = 0; i < objects.size(); i++) {
         regressBox(objects[i]);
     }
 }

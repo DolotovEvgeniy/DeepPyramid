@@ -11,7 +11,7 @@
 #include <utility>
 #include <string>
 
-#include "../include/bounding_box.h"
+#include <bounding_box.h>
 
 class DetectResultContainer {
  public:

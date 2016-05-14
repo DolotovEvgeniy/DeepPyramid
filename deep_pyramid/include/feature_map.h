@@ -21,6 +21,7 @@ public:
     void reshapeToVector(cv::Mat&  feature) const;
     bool save(std::string file_name);
     bool load(std::string file_name);
+    int area() const;
 private:
     std::vector<cv::Mat> map;
 };

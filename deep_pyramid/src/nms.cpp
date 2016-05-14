@@ -6,7 +6,7 @@
 #include <vector>
 
 #include <opencv2/objdetect/objdetect.hpp>
-#include "../include/rectangle_transform.h"
+#include <rectangle_transform.h>
 
 using namespace std;
 using namespace cv;
@@ -16,7 +16,7 @@ void NMS::divideIntoClusters(vector<BoundingBox>& objects, const double &box_thr
         BoundingBox objectWithMaxConfidence = *max_element(objects.begin(), objects.end());
         BoundingBoxCluster cluster;
         vector<BoundingBox> newObjects;
-        for (unsigned int i = 0; i < objects.size(); i++) {
+        for (size_t i = 0; i < objects.size(); i++) {
             if (IOU(objectWithMaxConfidence.originalImageBox, objects[i].originalImageBox) <= box_threshold) {
                 newObjects.push_back(objects[i]);
             } else {
@@ -36,6 +36,7 @@ void NMS::processBondingBox(vector<BoundingBox> &objects, const double &box_thre
     for (vector<BoundingBoxCluster>::iterator cluster = clusters.begin(); cluster != clusters.end(); cluster++) {
         int boundBoxCount = cluster->size();
         cout << "Box in cluster:" << boundBoxCount << endl;
+        BoundingBox box = mergeCluster(*cluster, confidence_threshold);
         detectedObjects.push_back(mergeCluster(*cluster, confidence_threshold));
     }
     objects = detectedObjects;
@@ -59,7 +60,25 @@ BoundingBox NMSavg::mergeCluster(BoundingBoxCluster &cluster, const double &conf
     BoundingBox resultBoundingBox;
     resultBoundingBox.originalImageBox = avg_rect(rectangleWithMaxConfidence);
     resultBoundingBox.confidence = maxConfidenceInCluster;
+    cout << "Confidence" << maxConfidenceInCluster << endl;
+    return resultBoundingBox;
+}
 
+BoundingBox NMSweightedAvg::mergeCluster(BoundingBoxCluster &cluster, const double &confidence_threshold) {
+    BoundingBox boundingBoxWithMaxConfidence = *max_element(cluster.begin(), cluster.end());
+    double maxConfidenceInCluster = boundingBoxWithMaxConfidence.confidence;
+
+    vector<BoundingBox> rectangleWithMaxConfidence;
+    for (vector<BoundingBox>::iterator boundingBox = cluster.begin(); boundingBox != cluster.end(); boundingBox++) {
+        if (boundingBox->confidence > confidence_threshold*maxConfidenceInCluster) {
+            rectangleWithMaxConfidence.push_back(*boundingBox);
+        }
+    }
+
+    BoundingBox resultBoundingBox;
+    resultBoundingBox.originalImageBox = weightedAvg_rect(rectangleWithMaxConfidence);
+    resultBoundingBox.confidence = maxConfidenceInCluster;
+cout << "Confidence" << maxConfidenceInCluster << endl;
     return resultBoundingBox;
 }
 

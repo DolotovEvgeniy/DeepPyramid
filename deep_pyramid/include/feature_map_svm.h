@@ -26,7 +26,7 @@ public:
     void load(const std::string& filename);
     float predict(const FeatureMap& sample, bool returnDFVal=false) const;
     void train(const std::vector<FeatureMap>& positive, const std::vector<FeatureMap>& negative);
-    void printAccuracy(const std::vector<FeatureMap> &positive, const std::vector<FeatureMap>& negative);
+    float printAccuracy(const std::vector<FeatureMap> &positive, const std::vector<FeatureMap>& negative);
     ~FeatureMapSVM();
     cv::Size  getMapSize();
 private:

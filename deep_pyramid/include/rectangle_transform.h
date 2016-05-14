@@ -8,12 +8,15 @@
 #include <opencv2/imgproc/imgproc.hpp>
 
 #include <vector>
+#include <bounding_box.h>
 
 cv::Point getRectangleCenter(const cv::Rect& rect);
 
 cv::Rect makeRectangle(const cv::Point& center, const int& width, const int& height);
 
 cv::Rect avg_rect(const std::vector<cv::Rect>& rectangles);
+
+cv::Rect weightedAvg_rect(const std::vector<BoundingBox>& rectangles);
 
 cv::Rect intersectRectangles(const std::vector<cv::Rect>& rectangles);
 

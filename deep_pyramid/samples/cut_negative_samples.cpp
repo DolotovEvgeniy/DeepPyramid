@@ -15,7 +15,7 @@ using namespace cv;
 
 int main(int argc, char *argv[])
 {
-    string pyramid_configuration=argv[1];
+ /*   string pyramid_configuration=argv[1];
     string fddb_file=argv[2];
     string fddb_image_folder=argv[3];
     string feature_prefix=argv[4];
@@ -49,6 +49,6 @@ int main(int argc, char *argv[])
             maps[j].save(feature_prefix+std::to_string((long long unsigned int)objectCount)+".xml");
             objectCount++;
         }
-    }
+    }*/
     return 0;
 }

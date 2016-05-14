@@ -70,7 +70,7 @@ int parseCommandLine(int argc, char *argv[], Mat& image, FileStorage& config) {
 void saveImageWithObjects(string file_name, const Mat& image, const vector<Rect>& objects) {
     Mat imageWithObjects;
     image.copyTo(imageWithObjects);
-    for (unsigned int i = 0; i < objects.size(); i++) {
+    for (size_t i = 0; i < objects.size(); i++) {
         rectangle(imageWithObjects, objects[i], Scalar(0, 255, 0));
     }
     imwrite(file_name, imageWithObjects);

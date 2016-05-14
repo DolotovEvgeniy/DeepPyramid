@@ -18,7 +18,7 @@ void FeatureMap::addLayer(Mat layer) {
 
 Mat uniteMats(std::vector<Mat> m) {
     Mat unite(1, 0, CV_32FC1);
-    for (unsigned int i = 0; i < m.size(); i++) {
+    for (size_t i = 0; i < m.size(); i++) {
         unite.push_back(m[i].reshape(1, 1));
     }
     return unite;
@@ -36,19 +36,19 @@ void calculateMeanAndDeviationValue(vector<Mat> level, float& meanValue, float& 
 void FeatureMap::normalize() {
     float mean, deviation;
     calculateMeanAndDeviationValue(map, mean, deviation);
-    for (unsigned int layer = 0; layer < map.size(); layer++) {
+    for (size_t layer = 0; layer < map.size(); layer++) {
         map[layer] = (map[layer]-mean)/deviation;
     }
 }
 
 void FeatureMap::extractFeatureMap(const Rect &rect, FeatureMap& extractedMap) const {
-    for (unsigned int layer = 0; layer < map.size(); layer++) {
+    for (size_t layer = 0; layer < map.size(); layer++) {
         extractedMap.addLayer(map[layer](rect));
     }
 }
 
 void FeatureMap::resize(const Size &size) {
-    for (unsigned int layer = 0; layer < map.size(); layer++) {
+    for (size_t layer = 0; layer < map.size(); layer++) {
         cv::resize(map[layer], map[layer], size);
     }
 }
@@ -57,9 +57,13 @@ Size FeatureMap::size() const {
     return Size(map[0].cols, map[0].rows);
 }
 
+int FeatureMap::area() const {
+    return map[0].cols * map[0].rows;
+}
+
 void FeatureMap::reshapeToVector(Mat& feature) const {
     feature = Mat(1, map[0].rows*map[0].cols*map.size(), CV_32FC1);
-    for (unsigned int layer = 0; layer < map.size(); layer++) {
+    for (size_t layer = 0; layer < map.size(); layer++) {
         for (int h = 0; h < map[layer].rows; h++) {
             for (int w = 0; w < map[layer].cols; w++) {
                 int indx = w+h*map[layer].cols+layer*map[layer].cols*map[layer].rows;
@@ -90,12 +94,13 @@ bool FeatureMap::load(string file_name) {
 
 bool FeatureMap::save(string file_name) {
     FileStorage file(file_name, FileStorage::WRITE);
+
     if (file.isOpened() == false) {
         return false;
     }
 
     file << "channels" << (int)map.size();
-    for (unsigned int i = 0; i < map.size(); i++) {
+    for (size_t i = 0; i < map.size(); i++) {
         file << "channel_"+std::to_string((long long int)i) << map[i];
     }
     file.release();

@@ -34,4 +34,9 @@ class NMSintersect : public NMS
     BoundingBox mergeCluster(BoundingBoxCluster& cluster, const double& confidence_threshold);
 };
 
+class NMSweightedAvg :public NMS
+{
+    BoundingBox mergeCluster(BoundingBoxCluster& cluster, const double& confidence_threshold);
+};
+
 #endif

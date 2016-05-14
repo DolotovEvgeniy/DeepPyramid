@@ -20,7 +20,7 @@ void DetectResultContainer::add(string image_path, vector<Rect> objects, vector<
 
     vector<Rect> addedObjects;
     vector<float> addedObjectsConfidence;
-    for (unsigned int i = 0; i < objects.size(); i++) {
+    for (size_t i = 0; i < objects.size(); i++) {
         addedObjects.push_back(objects[i]);
         addedObjectsConfidence.push_back(confidence[i]);
     }
@@ -31,7 +31,7 @@ void DetectResultContainer::add(string image_path, vector<Rect> objects, vector<
 
 int DetectResultContainer::detectedObjectsCount() {
     int count = 0;
-    for (unsigned int i = 0; i < objectsList.size(); i++) {
+    for (size_t i = 0; i < objectsList.size(); i++) {
         count+=objectsList[i].size();
     }
 
@@ -53,7 +53,7 @@ void DetectResultContainer::save(string file_name) {
     for (int i = 0; i < size(); i++) {
         file << imagesPath[i] << endl;
         file << objectsList[i].size() << endl;
-        for (unsigned int j = 0; j < objectsList[i].size(); j++) {
+        for (size_t j = 0; j < objectsList[i].size(); j++) {
             file << objectsList[i][j].x << " ";
             file << objectsList[i][j].y << " ";
             file << objectsList[i][j].width << " ";

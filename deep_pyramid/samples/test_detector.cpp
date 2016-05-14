@@ -69,10 +69,12 @@ int main(int argc, char *argv[]) {
 
     FDDBContainer testData;
     testData.load(test_data_filename, test_data_folder);
-
+    cout << testData.size() <<endl;
     DetectResultContainer resultData;
 
     for(int i = 0; i < testData.size(); i++) {
+        cout << "Processing " << i+1 <<" image. "
+             << testData.size()-i-1 << " images have not processed yet!" <<endl;
         string img_path;
         Mat image;
         vector<Rect> objects;
@@ -82,7 +84,7 @@ int main(int argc, char *argv[]) {
         vector<float> confidence;
         pyramid.detect(image, detectedObjects, confidence);
 
-        resultData.add(test_data_folder+img_path+".jpg", detectedObjects, confidence);
+        resultData.add(img_path, detectedObjects, confidence);
     }
 
     string output_filename;

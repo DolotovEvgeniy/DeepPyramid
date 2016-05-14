@@ -50,14 +50,14 @@ void FDDBContainer::load(string fddb_file, string image_prefix) {
                   << "' not found. Exiting" << std::endl;
         return;
     }
-
+    prefix = image_prefix;
     string img_path;
     while (file >> img_path) {
         Mat image;
-        image = imread(image_prefix+img_path+".jpg");
+        image = imread(prefix+img_path+".jpg");
 
         if (!image.data) {
-            std::cerr << "File '" << image_prefix+img_path+".jpg"
+            std::cerr << "File '" << prefix+img_path+".jpg"
                       << "' not found. Exiting." << std::endl;
             return;
         }
@@ -70,7 +70,7 @@ void FDDBContainer::load(string fddb_file, string image_prefix) {
             Rect  rect = readEllipseToRect(file);
             objects.push_back(rect);
         }
-        imagesPath.push_back(image_prefix+img_path+".jpg");
+        imagesPath.push_back(img_path);
         objectsList.push_back(objects);
     }
 
@@ -91,9 +91,9 @@ void FDDBContainer::reset() {
 
 void FDDBContainer::next(string& image_path, Mat& img, vector<Rect>& objects) {
     image_path = imagesPath[counter];
-    img = imread(imagesPath[counter]);
+    img = imread(prefix+imagesPath[counter]+".jpg");
 
-    for (unsigned int i = 0; i < objectsList[counter].size(); i++) {
+    for (size_t i = 0; i < objectsList[counter].size(); i++) {
         objects.push_back(objectsList[counter][i]);
     }
 

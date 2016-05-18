@@ -1,8 +1,10 @@
 // Copyright 2016 Dolotov Evgeniy
 
-#include "../include/neural_network.h"
+#include "neural_network.h"
 #include <string>
 #include <vector>
+#include <iostream>
+
 using std::string;
 using std::vector;
 using cv::Mat;
@@ -10,6 +12,10 @@ using cv::Size;
 using caffe::Net;
 using caffe::Blob;
 using caffe::Caffe;
+using cv::Size;
+using std::cout;
+using std::endl;
+
 NeuralNetwork::NeuralNetwork(string configFile, string trainedModel) {
 #ifdef CPU_ONLY
     Caffe::set_mode(Caffe::CPU);
@@ -23,7 +29,15 @@ NeuralNetwork::NeuralNetwork(string configFile, string trainedModel) {
     assert(input_layer->width() == input_layer->height());
 }
 
+void NeuralNetwork::reshape(cv::Size size)
+{
+    Blob<float>* input_layer = net->input_blobs()[0];
+    input_layer->Reshape(1, input_layer->channels(), size.height, size.width);
+    net->Reshape();
+}
+
 void NeuralNetwork::processImage(const Mat &img, FeatureMap& map) {
+    reshape(Size(img.cols, img.rows));
     fillNeuralNetInput(img);
     calculate();
     getNeuralNetOutput(map);
@@ -35,7 +49,7 @@ void NeuralNetwork::fillNeuralNetInput(const Mat &img) {
     int height = input_layer->height();
     input_layer->Reshape(1, input_layer->channels(), height, width);
     net->Reshape();
-
+    cout << "[" << width << " x " << height << "]" <<endl;
     vector<Mat> input_channels;
     float* input_data = input_layer->mutable_cpu_data();
     for (int i = 0; i < input_layer->channels(); ++i) {

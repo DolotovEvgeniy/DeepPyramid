@@ -25,7 +25,7 @@ public:
     cv::Size outputLayerSize();
 private:
     caffe::shared_ptr<caffe::Net<float> > net;
-
+    void reshape(cv::Size size);
     void fillNeuralNetInput(const cv::Mat& img);
     void getNeuralNetOutput(FeatureMap& map);
     void calculate();

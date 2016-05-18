@@ -34,6 +34,9 @@ void NeuralNetwork::reshape(cv::Size size)
     Blob<float>* input_layer = net->input_blobs()[0];
     input_layer->Reshape(1, input_layer->channels(), size.height, size.width);
     net->Reshape();
+
+    Blob<float>* output_layer = net->output_blobs()[0];
+    cout << "OUT" << output_layer->height() << "," <<output_layer->width();
 }
 
 void NeuralNetwork::processImage(const Mat &img, FeatureMap& map) {
@@ -41,6 +44,7 @@ void NeuralNetwork::processImage(const Mat &img, FeatureMap& map) {
     fillNeuralNetInput(img);
     calculate();
     getNeuralNetOutput(map);
+    cout << map.size() <<endl;
 }
 
 void NeuralNetwork::fillNeuralNetInput(const Mat &img) {

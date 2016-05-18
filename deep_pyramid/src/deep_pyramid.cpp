@@ -5,24 +5,18 @@
 #include <rectangle_transform.h>
 
 #include <assert.h>
+#include <stdio.h>
 #include <time.h>
 
 #include <string>
 #include <vector>
 #include <algorithm>
 
-using cv::Mat;
-using cv::Rect;
-using cv::Size;
-using cv::Scalar;
-using cv::Point;
-using cv::FileStorage;
-using std::vector;
-using std::cout;
-using std::endl;
-using std::string;
+using namespace std;
+using namespace cv;
+
 #define TIMER_START(name) int64 t_##name = getTickCount()
-#define TIMER_END(name) printf("TIMER_" #name ":\t%6.2fms\n", \
+#define TIMER_END(name) printf(#name ":\t%6.2fms\n", \
     1000.f * ((getTickCount() - t_##name) / getTickFrequency()))
 
 Rect DeepPyramid::norm5Rect2Original(const Rect& norm5Rect, int level, const Size& imgSize) const {
@@ -50,9 +44,12 @@ Size DeepPyramid::embeddedImageSize(const Size& imgSize, const int& i) const {
 
 void DeepPyramid::constructImagePyramid(const Mat& img, vector<Mat>& imgPyramid) const {
     Size imgSize(img.cols, img.rows);
-    cout << "Create image pyramid..." << endl;
+
+    TIMER_START(Create_image_pyramid);
     for (int level = 0; level < levelCount; level++) {
-        Mat imgAtLevel(net->inputLayerSize(), CV_8UC3, Scalar::all(0));
+        int size = 1713;
+        size *= 1/pow(2, (levelCount-1-level)/2.0);
+        Mat imgAtLevel(Size(size, size), CV_8UC3, Scalar::all(0));
 
         Mat resizedImg;
         Size resizedImgSize = embeddedImageSize(imgSize, level);
@@ -60,6 +57,8 @@ void DeepPyramid::constructImagePyramid(const Mat& img, vector<Mat>& imgPyramid)
         resizedImg.copyTo(imgAtLevel(Rect(Point(0, 0), resizedImgSize)));
         imgPyramid.push_back(imgAtLevel);
     }
+    TIMER_END(Create_image_pyramid);
+
     cout << "Status: Success!" << endl;
 }
 
@@ -67,10 +66,14 @@ void DeepPyramid::constructFeatureMapPyramid(const Mat& img, vector<FeatureMap>&
     vector<Mat> imgPyramid;
     constructImagePyramid(img, imgPyramid);
     for (int i = 0; i < levelCount; i++) {
+        TIMER_START(NeuralNetwork_Compute);
         FeatureMap map;
         net->processImage(imgPyramid[i], map);
+
         map.normalize();
+        cout << "jjjj" << map.size() <<endl;
         maps.push_back(map);
+        TIMER_END(NeuralNetwork_Compute);
     }
 }
 //
@@ -79,13 +82,7 @@ void DeepPyramid::detect(const vector<FeatureMap>& maps, vector<BoundingBox>& de
     for (size_t i = 0; i < rootFilter.size(); i++)
         for (size_t j = 0; j < levelCount; j++) {
             vector<BoundingBox> detectedObjectsAtLevel;
-            Size size = maps[j].size();
-            double scale = 1 / pow(2.0, (levelCount - j -1)/2.0);
-            size.width = size.width * scale;
-            size.height = size.height * scale;
-            FeatureMap map;
-            maps[j].extractFeatureMap(Rect(Point(0, 0), size), map);
-            processFeatureMap(i, map, detectedObjectsAtLevel);
+            processFeatureMap(i, maps[j], detectedObjectsAtLevel);
             for (size_t k = 0; k < detectedObjectsAtLevel.size(); k++) {
                 detectedObjectsAtLevel[k].level = j;
                 detectedObjects.push_back(detectedObjectsAtLevel[k]);
@@ -243,7 +240,7 @@ void DeepPyramid::extractFeatureMap(const Mat &img, vector<Rect> &objects, Size 
                 for (size_t obj = 0; obj < objects.size(); obj++) {
                     if (IOU(Rect(Point(w, h), size), objectsAtLevel[obj]) > 0.3)
                         isNegative = false;
-                    if (IOU(Rect(Point(w, h), size), objectsAtLevel[obj]) > 0.7)
+                    if (IOU(Rect(Point(w, h), size), objectsAtLevel[obj]) > 0.8)
                         isPositive = true;
                 }
                 FeatureMap map;

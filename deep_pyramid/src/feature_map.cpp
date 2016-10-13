@@ -1,16 +1,12 @@
 // Copyright 2016 Dolotov Evgeniy
 
-#include <../include/feature_map.h>
-
 #include <string>
 #include <vector>
 
-using std::vector;
-using cv::string;
-using cv::Mat;
-using cv::Rect;
-using cv::Size;
-using cv::FileStorage;
+#include "feature_map.h"
+
+using namespace std;
+using namespace cv;
 
 void FeatureMap::addLayer(Mat layer) {
     map.push_back(layer);
@@ -24,7 +20,8 @@ Mat uniteMats(std::vector<Mat> m) {
     return unite;
 }
 
-void calculateMeanAndDeviationValue(vector<Mat> level, float& meanValue, float& deviationValue) {
+void calculateMeanAndDeviationValue(vector<Mat> level, float& meanValue,
+                                    float& deviationValue) {
     Mat unite = uniteMats(level);
     Mat mean, deviation;
     // корень или квадрат?
@@ -41,13 +38,14 @@ void FeatureMap::normalize() {
     }
 }
 
-void FeatureMap::extractFeatureMap(const Rect &rect, FeatureMap& extractedMap) const {
+void FeatureMap::extractFeatureMap(const Rect& rect,
+                                   FeatureMap& extractedMap) const {
     for (size_t layer = 0; layer < map.size(); layer++) {
         extractedMap.addLayer(map[layer](rect));
     }
 }
 
-void FeatureMap::resize(const Size &size) {
+void FeatureMap::resize(const Size& size) {
     for (size_t layer = 0; layer < map.size(); layer++) {
         cv::resize(map[layer], map[layer], size);
     }
@@ -62,12 +60,15 @@ int FeatureMap::area() const {
 }
 
 void FeatureMap::reshapeToVector(Mat& feature) const {
-    feature = Mat(1, map[0].rows*map[0].cols*map.size(), CV_32FC1);
+    int cols = map[0].cols;
+    int rows = map[0].rows;
+
+    feature = Mat(1, rows*cols*map.size(), CV_32FC1);
     for (size_t layer = 0; layer < map.size(); layer++) {
-        for (int h = 0; h < map[layer].rows; h++) {
-            for (int w = 0; w < map[layer].cols; w++) {
-                int indx = w+h*map[layer].cols+layer*map[layer].cols*map[layer].rows;
-                feature.at<float>(0, indx)=map[layer].at<float>(h, w);
+        for (int y = 0; y < rows; y++) {
+            for (int x = 0; x < cols; x++) {
+                int indx = x+y*cols+layer*cols*rows;
+                feature.at<float>(0, indx)=map[layer].at<float>(y, x);
             }
         }
     }

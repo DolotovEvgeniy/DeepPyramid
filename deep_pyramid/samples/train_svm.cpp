@@ -60,7 +60,9 @@ int parseCommandLine(int argc, char *argv[], FileStorage& config) {
 
 void loadFeature(string filename, vector<FeatureMap>& features,string prefix) {
     ifstream file(filename);
+
     string featureFile;
+    features.clear();
     while (file >> featureFile) {
         FeatureMap map;
         map.load(prefix+featureFile);
@@ -72,7 +74,6 @@ void loadFeature(string filename, vector<FeatureMap>& features,string prefix) {
             continue;
         }
     }
-    cout << "positive:" << features.size() << endl;
 }
 
 int main(int argc, char *argv[]) {
@@ -129,14 +130,14 @@ int main(int argc, char *argv[]) {
 
         vector<FeatureMap> omaps, nmaps;
         pyramid.extractFeatureMap(image, objects, filterSize, omaps, nmaps);
-       do
+        do
         {
             int newPositive=0;
             for(size_t i=0;i<omaps.size();i++)
             {
                 if(newPositive<20)
                 {
-                    if(svm.predict(omaps[i])==NOT_OBJECT)
+                    if(svm.predictObjectType(omaps[i])==NOT_OBJECT)
                     {
                         objectsFeature.push_back(omaps[i]);
                         newPositive++;
@@ -152,7 +153,7 @@ int main(int argc, char *argv[]) {
             {
                 if(newNegative<40)
                 {
-                    if(svm.predict(nmaps[i])==OBJECT)
+                    if(svm.predictObjectType(nmaps[i])==OBJECT)
                     {
                         negativeFeature.push_back(nmaps[i]);
                         newNegative++;
@@ -169,11 +170,11 @@ int main(int argc, char *argv[]) {
             svm.save("linear_svm"+std::to_string((long long int)iter)+".xml");
 
             for (unsigned int j = 0; j < objectsFeature.size(); j++) {
-                    objectsFeature[j].save(prefix+"positive"+std::to_string((long long unsigned int)j)+".xml");
+                objectsFeature[j].save(prefix+"positive"+std::to_string((long long unsigned int)j)+".xml");
             }
 
             for (unsigned int j = 0; j < negativeFeature.size(); j++) {
-                    negativeFeature[j].save(prefix+"negative"+std::to_string((long long unsigned int)j)+".xml");
+                negativeFeature[j].save(prefix+"negative"+std::to_string((long long unsigned int)j)+".xml");
             }
         }
         while(svm.printAccuracy(omaps, nmaps)!=1);

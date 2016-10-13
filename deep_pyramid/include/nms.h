@@ -13,30 +13,16 @@ public:
     void processBondingBox(std::vector<BoundingBox>& objects,const double& box_threshold,
                            const double& confidence_threshold=0);
 protected:
-    virtual BoundingBox mergeCluster(BoundingBoxCluster& cluster, const double& confidence_threshold)=0;
-private:
-    void divideIntoClusters(std::vector<BoundingBox>& objects,const double& box_threshold,
-                            std::vector<BoundingBoxCluster>& clusters);
-};
+    virtual void divideIntoClusters(std::vector<BoundingBox>& objects,const double& box_threshold,
+                                    std::vector<BoundingBoxCluster>& clusters);
+    virtual BoundingBox mergeCluster(BoundingBoxCluster& cluster, const double& confidence_threshold);
+    virtual cv::Rect groupBoundingBox(std::vector<BoundingBox>& objects)=0;
 
-class NMSmax : public NMS
-{
-    BoundingBox mergeCluster(BoundingBoxCluster& cluster, const double& confidence_threshold);
-};
-
-class NMSavg : public NMS
-{
-    BoundingBox mergeCluster(BoundingBoxCluster& cluster, const double& confidence_threshold);
-};
-
-class NMSintersect : public NMS
-{
-    BoundingBox mergeCluster(BoundingBoxCluster& cluster, const double& confidence_threshold);
 };
 
 class NMSweightedAvg :public NMS
 {
-    BoundingBox mergeCluster(BoundingBoxCluster& cluster, const double& confidence_threshold);
+    virtual cv::Rect groupBoundingBox(std::vector<BoundingBox>& objects);
 };
 
 #endif

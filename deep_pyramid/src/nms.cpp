@@ -1,17 +1,18 @@
 // Copyright 2016 Dolotov Evgeniy
 
-#include "../include/nms.h"
 #include <algorithm>
 #include <iostream>
 #include <vector>
 
 #include <opencv2/objdetect/objdetect.hpp>
-#include <rectangle_transform.h>
+
+#include "nms.h"
+#include "rectangle_transform.h"
 
 using namespace std;
 using namespace cv;
 
-void NMS::divideIntoClusters(vector<BoundingBox>& objects, const double &box_threshold, vector<BoundingBoxCluster>& clusters) {
+void NMS::divideIntoClusters(vector<BoundingBox>& objects, const double& box_threshold, vector<BoundingBoxCluster>& clusters) {
     while (!objects.empty()) {
         BoundingBox objectWithMaxConfidence = *max_element(objects.begin(), objects.end());
         BoundingBoxCluster cluster;
@@ -28,7 +29,7 @@ void NMS::divideIntoClusters(vector<BoundingBox>& objects, const double &box_thr
     }
 }
 
-void NMS::processBondingBox(vector<BoundingBox> &objects, const double &box_threshold, const double &confidence_threshold) {
+void NMS::processBondingBox(vector<BoundingBox>& objects, const double& box_threshold, const double& confidence_threshold) {
     vector<BoundingBox> detectedObjects;
     vector<BoundingBoxCluster> clusters;
 
@@ -42,29 +43,7 @@ void NMS::processBondingBox(vector<BoundingBox> &objects, const double &box_thre
     objects = detectedObjects;
 }
 
-BoundingBox NMSmax::mergeCluster(BoundingBoxCluster &cluster, const double &confidence_threshold) {
-    return *max_element(cluster.begin(), cluster.end());
-}
-
-BoundingBox NMSavg::mergeCluster(BoundingBoxCluster &cluster, const double &confidence_threshold) {
-    BoundingBox boundingBoxWithMaxConfidence = *max_element(cluster.begin(), cluster.end());
-    double maxConfidenceInCluster = boundingBoxWithMaxConfidence.confidence;
-
-    vector<Rect> rectangleWithMaxConfidence;
-    for (vector<BoundingBox>::iterator boundingBox = cluster.begin(); boundingBox != cluster.end(); boundingBox++) {
-        if (boundingBox->confidence > confidence_threshold*maxConfidenceInCluster) {
-            rectangleWithMaxConfidence.push_back(boundingBox->originalImageBox);
-        }
-    }
-
-    BoundingBox resultBoundingBox;
-    resultBoundingBox.originalImageBox = avg_rect(rectangleWithMaxConfidence);
-    resultBoundingBox.confidence = maxConfidenceInCluster;
-    cout << "Confidence" << maxConfidenceInCluster << endl;
-    return resultBoundingBox;
-}
-
-BoundingBox NMSweightedAvg::mergeCluster(BoundingBoxCluster &cluster, const double &confidence_threshold) {
+BoundingBox NMS::mergeCluster(BoundingBoxCluster& cluster, const double& confidence_threshold) {
     BoundingBox boundingBoxWithMaxConfidence = *max_element(cluster.begin(), cluster.end());
     double maxConfidenceInCluster = boundingBoxWithMaxConfidence.confidence;
 
@@ -76,26 +55,12 @@ BoundingBox NMSweightedAvg::mergeCluster(BoundingBoxCluster &cluster, const doub
     }
 
     BoundingBox resultBoundingBox;
-    resultBoundingBox.originalImageBox = weightedAvg_rect(rectangleWithMaxConfidence);
+    resultBoundingBox.originalImageBox = groupBoundingBox(rectangleWithMaxConfidence);
     resultBoundingBox.confidence = maxConfidenceInCluster;
-cout << "Confidence" << maxConfidenceInCluster << endl;
+    cout << "Confidence" << maxConfidenceInCluster << endl;
     return resultBoundingBox;
 }
 
-BoundingBox NMSintersect::mergeCluster(BoundingBoxCluster &cluster, const double &confidence_threshold) {
-    BoundingBox boundingBoxWithMaxConfidence = *max_element(cluster.begin(), cluster.end());
-    double maxConfidenceInCluster = boundingBoxWithMaxConfidence.confidence;
-
-    vector<Rect> rectangleWithMaxConfidence;
-    for (vector<BoundingBox>::iterator boundingBox = cluster.begin(); boundingBox != cluster.end(); boundingBox++) {
-        if (boundingBox->confidence > confidence_threshold*maxConfidenceInCluster) {
-            rectangleWithMaxConfidence.push_back(boundingBox->originalImageBox);
-        }
-    }
-
-    BoundingBox resultBoundingBox;
-    resultBoundingBox.originalImageBox = intersectRectangles(rectangleWithMaxConfidence);
-    resultBoundingBox.confidence = maxConfidenceInCluster;
-
-    return resultBoundingBox;
+Rect NMSweightedAvg::groupBoundingBox(std::vector<BoundingBox>& objects) {
+    return weightedAvg_rect(objects);
 }

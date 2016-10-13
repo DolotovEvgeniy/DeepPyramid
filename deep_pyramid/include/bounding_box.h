@@ -7,10 +7,10 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
-#include "../include/feature_map.h"
+#include "feature_map.h"
 
 class BoundingBox {
- public:
+public:
     double confidence;
     int level;
     cv::Rect norm5Box;

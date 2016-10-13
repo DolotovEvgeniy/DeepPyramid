@@ -1,15 +1,14 @@
 // Copyright 2016 Dolotov Evgeniy
 
-#include "../include/neural_network.h"
 #include <string>
 #include <vector>
-using std::string;
-using std::vector;
-using cv::Mat;
-using cv::Size;
-using caffe::Net;
-using caffe::Blob;
-using caffe::Caffe;
+
+#include "neural_network.h"
+
+using namespace std;
+using namespace cv;
+using namespace caffe;
+
 NeuralNetwork::NeuralNetwork(string configFile, string trainedModel) {
 #ifdef CPU_ONLY
     Caffe::set_mode(Caffe::CPU);
@@ -23,13 +22,13 @@ NeuralNetwork::NeuralNetwork(string configFile, string trainedModel) {
     assert(input_layer->width() == input_layer->height());
 }
 
-void NeuralNetwork::processImage(const Mat &img, FeatureMap& map) {
+void NeuralNetwork::processImage(const Mat& img, FeatureMap& map) {
     fillNeuralNetInput(img);
     calculate();
     getNeuralNetOutput(map);
 }
 
-void NeuralNetwork::fillNeuralNetInput(const Mat &img) {
+void NeuralNetwork::fillNeuralNetInput(const Mat& img) {
     Blob<float>* input_layer = net->input_blobs()[0];
     int width = input_layer->width();
     int height = input_layer->height();
@@ -49,16 +48,20 @@ void NeuralNetwork::fillNeuralNetInput(const Mat &img) {
     split(img_float, input_channels);
 }
 
-void NeuralNetwork::getNeuralNetOutput(FeatureMap &map) {
+void NeuralNetwork::getNeuralNetOutput(FeatureMap& map) {
     Blob<float>* output_layer = net->output_blobs()[0];
     const float* begin = output_layer->cpu_data();
-    float* data = new float[output_layer->height()*output_layer->width()];
 
-    for (int k = 0; k < output_layer->channels(); k++) {
-        for (int i  = 0; i < output_layer->height()*output_layer->width();  i++) {
-            data[i] = begin[i+output_layer->height()*output_layer->width()*k];
+    int height = output_layer->height();
+    int width = output_layer->width();
+    float* data = new float[height*width];
+
+    int channels = output_layer->channels();
+    for (int k = 0; k < channels; k++) {
+        for (int i  = 0; i < height*width;  i++) {
+            data[i] = begin[i+height*width*k];
         }
-        Mat conv(output_layer->height(), output_layer->width(), CV_32FC1, data);
+        Mat conv(height, width, CV_32FC1, data);
         map.addLayer(conv.clone());
     }
 }

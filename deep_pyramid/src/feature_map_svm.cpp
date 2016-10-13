@@ -1,33 +1,43 @@
 // Copyright 2016 Dolotov Evgeniy
 
-#include "../include/feature_map_svm.h"
 #include <string>
 #include <vector>
 #include <iostream>
 
-using std::string;
-using std::vector;
-using cv::Mat;
-using cv::Size;
-using std::cout;
-using std::endl;
+#include "feature_map_svm.h"
+
+using namespace std;
+using namespace cv;
 
 void FeatureMapSVM::load(const string& filename) {
     svm->load(filename.c_str());
 }
 
-void FeatureMapSVM::save(const string &filename) {
+void FeatureMapSVM::save(const string& filename) const{
     svm->save(filename.c_str());
 }
 
-float FeatureMapSVM::predict(const FeatureMap &sample, bool returnDFVal) const {
+ObjectType FeatureMapSVM::predictObjectType(const FeatureMap& sample) const {
     Mat feature;
     sample.reshapeToVector(feature);
 
-    return svm->predict(feature, returnDFVal);
+    double predictValue =  svm->predict(feature);
+    if(predictValue == 1) {
+        return OBJECT;
+    } else {
+        return NOT_OBJECT;
+    }
 }
 
-void FeatureMapSVM::train(const vector<FeatureMap> &positive, const vector<FeatureMap>& negative) {
+double FeatureMapSVM::predictConfidence(const FeatureMap& sample) const {
+    Mat feature;
+    sample.reshapeToVector(feature);
+
+    return svm->predict(feature, true);
+}
+
+void FeatureMapSVM::train(const vector<FeatureMap>& positive,
+                          const vector<FeatureMap>& negative) {
     cout<<"Positives count: "<<positive.size()<<endl;
     cout<<"Negatives count: "<<negative.size()<<endl;
     Mat features;
@@ -61,7 +71,8 @@ FeatureMapSVM::~FeatureMapSVM() {
     delete svm;
 }
 
-float FeatureMapSVM::printAccuracy(const vector<FeatureMap> &positive, const vector<FeatureMap>& negative) {
+float FeatureMapSVM::printAccuracy(const vector<FeatureMap>& positive,
+                                   const vector<FeatureMap>& negative) const{
     int objectsCount = positive.size();
     int negativeCount = negative.size();
 
@@ -69,26 +80,33 @@ float FeatureMapSVM::printAccuracy(const vector<FeatureMap> &positive, const vec
     int truePositive = 0;
 
     for (size_t i = 0; i < positive.size(); i++) {
-        if (predict(positive[i]) == OBJECT) {
+        if (predictObjectType(positive[i]) == OBJECT) {
             truePositive++;
         }
     }
     for (size_t i = 0; i < negative.size(); i++) {
-        if (predict(negative[i]) == NOT_OBJECT) {
+        if (predictObjectType(negative[i]) == NOT_OBJECT) {
             trueNegative++;
         }
     }
-
-    cout << "Objects classification accuracy:" << truePositive/(double)objectsCount << endl;
-    cout << "Negative classification accuracy:" << trueNegative/(double)negativeCount << endl;
-    cout << "Common classification accuracy:" << (truePositive+trueNegative)/(double)(objectsCount+negativeCount) << endl;
+    cout << "Objects classification accuracy:" 
+         << truePositive/(double)objectsCount
+         << endl;
+    
+    cout << "Negative classification accuracy:" 
+         << trueNegative/(double)negativeCount 
+         << endl;
+    
+    cout << "Common classification accuracy:"
+         << (truePositive+trueNegative)/(double)(objectsCount+negativeCount)
+         << endl;
 
     cout << "Count of features:" << objectsCount+negativeCount << endl;
 
     return trueNegative/(double)negativeCount;
 }
 
-Size FeatureMapSVM::getMapSize() {
+Size FeatureMapSVM::getMapSize() const{
     return mapSize;
 }
 FeatureMapSVM::FeatureMapSVM(Size size) {

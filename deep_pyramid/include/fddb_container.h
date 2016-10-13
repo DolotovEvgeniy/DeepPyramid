@@ -3,15 +3,15 @@
 #ifndef FDDB_CONTAINER_H
 #define FDDB_CONTAINER_H
 
-#include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-
 #include <vector>
 #include <utility>
 #include <string>
 
-#include <bounding_box.h>
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+
+#include "bounding_box.h"
 
 class FDDBContainer
 {

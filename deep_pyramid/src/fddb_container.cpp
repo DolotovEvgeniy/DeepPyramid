@@ -1,21 +1,17 @@
 // Copyright 2016 Dolotov Evgeniy
 
-#include "../include/fddb_container.h"
-
 #include <fstream>
 #include <iostream>
 #include <vector>
 #include <string>
 
-using std::string;
-using std::ifstream;
-using std::vector;
-using cv::Mat;
-using cv::Rect;
-using cv::Point;
-using cv::Size;
-using cv::imread;
-Rect ellipseToRect(int major_axis_radius, int minor_axis_radius, double angle, int center_x, int center_y) {
+#include "fddb_container.h"
+
+using namespace std;
+using namespace cv;
+
+Rect ellipseToRect(int major_axis_radius, int minor_axis_radius,
+                   double angle, int center_x, int center_y) {
     double alpha, betta;
     alpha = atan(-major_axis_radius*tan(angle)/minor_axis_radius);
     betta = atan(major_axis_radius/(tan(angle)*minor_axis_radius));
@@ -30,7 +26,8 @@ Rect ellipseToRect(int major_axis_radius, int minor_axis_radius, double angle, i
     int xSide = fabs(xMax-xMin);
     int ySide = fabs(yMin-yMax);
 
-    return Rect(Point(center_x-ySide/2.0, center_y-xSide/2.0), Size(ySide, xSide));
+    return Rect(Point(center_x-ySide/2.0, center_y-xSide/2.0),
+                Size(ySide, xSide));
 }
 
 Rect readEllipseToRect(ifstream& file) {

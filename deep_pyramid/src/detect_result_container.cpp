@@ -1,46 +1,16 @@
 // Copyright 2016 Dolotov Evgeniy
 
-#include "../include/detect_result_container.h"
 
 #include <iostream>
 #include <fstream>
 #include <vector>
 #include <string>
 
-using std::cout;
-using std::endl;
-using std::string;
-using std::ofstream;
-using std::vector;
-using cv::Mat;
-using cv::Rect;
+#include "detect_result_container.h"
 
-void DetectResultContainer::add(string image_path, vector<Rect> objects, vector<float> confidence) {
-    imagesPath.push_back(image_path);
+using namespace std;
+using namespace cv;
 
-    vector<Rect> addedObjects;
-    vector<float> addedObjectsConfidence;
-    for (size_t i = 0; i < objects.size(); i++) {
-        addedObjects.push_back(objects[i]);
-        addedObjectsConfidence.push_back(confidence[i]);
-    }
-
-    objectsList.push_back(addedObjects);
-    confidenceList.push_back(addedObjectsConfidence);
-}
-
-int DetectResultContainer::detectedObjectsCount() {
-    int count = 0;
-    for (size_t i = 0; i < objectsList.size(); i++) {
-        count+=objectsList[i].size();
-    }
-
-    return count;
-}
-
-int DetectResultContainer::size() {
-    return imagesPath.size();
-}
 
 void DetectResultContainer::save(string file_name) {
     ofstream file(file_name);
@@ -61,4 +31,32 @@ void DetectResultContainer::save(string file_name) {
             file << confidenceList[i][j] << endl;
         }
     }
+}
+
+void DetectResultContainer::add(string image_path, vector<Rect> objects,
+                                vector<float> confidence) {
+    imagesPath.push_back(image_path);
+
+    vector<Rect> addedObjects;
+    vector<float> addedObjectsConfidence;
+    for (size_t i = 0; i < objects.size(); i++) {
+        addedObjects.push_back(objects[i]);
+        addedObjectsConfidence.push_back(confidence[i]);
+    }
+
+    objectsList.push_back(addedObjects);
+    confidenceList.push_back(addedObjectsConfidence);
+}
+
+int DetectResultContainer::size() {
+    return imagesPath.size();
+}
+
+int DetectResultContainer::detectedObjectsCount() {
+    int count = 0;
+    for (size_t i = 0; i < objectsList.size(); i++) {
+        count+=objectsList[i].size();
+    }
+
+    return count;
 }

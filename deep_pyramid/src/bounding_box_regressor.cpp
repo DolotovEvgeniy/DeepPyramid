@@ -1,20 +1,17 @@
 // Copyright 2016 Dolotov Evgeniy
 
-#include "../include/bounding_box_regressor.h"
+#include <vector>
 
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/core/core.hpp>
 
-#include <vector>
+#include "bounding_box_regressor.h"
+#include "bounding_box.h"
+#include "rectangle_transform.h"
 
-#include "../include/bounding_box.h"
-#include "../include/rectangle_transform.h"
-
-using std::vector;
-using cv::Mat;
-using cv::Rect;
-using cv::Point;
+using namespace std;
+using namespace cv;
 
 void BoundingBoxRegressor::processBoundingBoxes(vector<BoundingBox>& objects) {
     for (size_t i = 0; i < objects.size(); i++) {
